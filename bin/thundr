@@ -18,12 +18,17 @@ if (version_compare(PHP_VERSION, '8.5.0', '>=') === true) {
     exit(1);
 }
 
-if (file_exists($path = __DIR__ . '/../vendor/autoload.php')
-        || file_exists($path = __DIR__ . '/../../autoload.php')
-        || file_exists($path = __DIR__ . '/../../../autoload.php')) {
-    include_once($path);
-} else {
-    throw new \Exception('Could not locate autoload.php');
+foreach ([
+    __DIR__ . '/../vendor/autoload.php',            // local dev
+    __DIR__ . '/../../autoload.php',                // global install
+    __DIR__ . '/../../../autoload.php',             // fallback
+] as $autoload) {
+    if (file_exists($autoload)) {
+        require $autoload;
+        break;
+    } else {
+		throw new \Exception('Could not locate autoload.php');
+	}
 }
 
 $app = new \Mccomaschris\ThundrCli\Application();
