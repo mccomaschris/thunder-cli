@@ -1,0 +1,19 @@
+{
+	"name": "mccomaschris/thundr",
+	"description": "Thundr CLI for managing Laravel and Statamic deploys",
+	"type": "project",
+	"autoload": {
+	  "psr-4": {
+		"Mccomaschris\\ThundrCli\\": "src/"
+	  }
+	},
+	"require": {
+	  "symfony/console": "^6.0",
+	  "symfony/yaml": "^6.0",
+	  "symfony/process": "^6.0",
+	  "laravel/prompts": "^0.3.5"
+	},
+	"bin": ["bin/thundr"],
+	"minimum-stability": "dev",
+	"prefer-stable": true
+  }
