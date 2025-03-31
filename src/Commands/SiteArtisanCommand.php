@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
+
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 
@@ -23,11 +24,12 @@ class SiteArtisanCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $cwd = getcwd();
-        $projectYaml = $cwd . '/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')) . '/.thundr/config.yml';
+        $projectYaml = $cwd.'/thundr.yml';
+        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
 
-        if (!file_exists($projectYaml) || !file_exists($globalYaml)) {
-            error("❌ Missing thundr.yml or ~/.thundr/config.yml");
+        if (! file_exists($projectYaml) || ! file_exists($globalYaml)) {
+            error('❌ Missing thundr.yml or ~/.thundr/config.yml');
+
             return Command::FAILURE;
         }
 
@@ -38,8 +40,9 @@ class SiteArtisanCommand extends Command
         $serverKey = $project['server'] ?? null;
         $server = $global['servers'][$serverKey] ?? null;
 
-        if (!$server) {
+        if (! $server) {
             error("❌ Server '{$serverKey}' not found in global config.");
+
             return Command::FAILURE;
         }
 

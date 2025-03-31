@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -19,11 +20,12 @@ class SiteRollbackCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $cwd = getcwd();
-        $projectYaml = $cwd . '/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')) . '/.thundr/config.yml';
+        $projectYaml = $cwd.'/thundr.yml';
+        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
 
-        if (!file_exists($projectYaml) || !file_exists($globalYaml)) {
-            error("❌ Missing thundr.yml or ~/.thundr/config.yml");
+        if (! file_exists($projectYaml) || ! file_exists($globalYaml)) {
+            error('❌ Missing thundr.yml or ~/.thundr/config.yml');
+
             return Command::FAILURE;
         }
 
@@ -35,8 +37,9 @@ class SiteRollbackCommand extends Command
         $serverKey = $project['server'] ?? null;
         $server = $global['servers'][$serverKey] ?? null;
 
-        if (!$server) {
+        if (! $server) {
             error("❌ Server '{$serverKey}' not found in global config.");
+
             return Command::FAILURE;
         }
 
@@ -53,28 +56,31 @@ class SiteRollbackCommand extends Command
         $sshList = Process::fromShellCommandline("ssh {$sshOptions} {$user}@{$host} '{$listCmd}'");
         $sshList->run();
 
-        if (!$sshList->isSuccessful()) {
-            error("❌ Failed to list releases for rollback.");
+        if (! $sshList->isSuccessful()) {
+            error('❌ Failed to list releases for rollback.');
+
             return Command::FAILURE;
         }
 
         $releases = array_filter(explode(PHP_EOL, trim($sshList->getOutput())));
         if (count($releases) < 2) {
-            error("❌ Not enough releases to perform a rollback.");
+            error('❌ Not enough releases to perform a rollback.');
+
             return Command::FAILURE;
         }
 
         $previousRelease = $releases[1];
 
-        if (!confirm("Rollback to previous release: {$previousRelease}?")) {
-            info("ℹ️ Rollback cancelled.");
+        if (! confirm("Rollback to previous release: {$previousRelease}?")) {
+            info('ℹ️ Rollback cancelled.');
+
             return Command::SUCCESS;
         }
 
-        $rollbackScript = implode(" && ", [
+        $rollbackScript = implode(' && ', [
             "sudo ln -nsf {$releasesDir}/{$previousRelease} {$currentSymlink}",
             "sudo systemctl reload php{$phpVersion}-fpm",
-            "sudo systemctl reload nginx"
+            'sudo systemctl reload nginx',
         ]);
 
         $sshRollback = Process::fromShellCommandline("ssh {$sshOptions} {$user}@{$host} '{$rollbackScript}'");
@@ -82,12 +88,14 @@ class SiteRollbackCommand extends Command
             $output->write($buffer);
         });
 
-        if (!$sshRollback->isSuccessful()) {
-            error("❌ Rollback failed.");
+        if (! $sshRollback->isSuccessful()) {
+            error('❌ Rollback failed.');
+
             return Command::FAILURE;
         }
 
         outro("✅ Rollback complete! Now running: {$previousRelease}");
+
         return Command::SUCCESS;
     }
 }

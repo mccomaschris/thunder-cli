@@ -8,9 +8,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
+
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\info;
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
@@ -20,11 +21,12 @@ class SiteEnvCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $cwd = getcwd();
-        $projectYaml = $cwd . '/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')) . '/.thundr/config.yml';
+        $projectYaml = $cwd.'/thundr.yml';
+        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
 
-        if (!file_exists($projectYaml) || !file_exists($globalYaml)) {
-            error("❌ Missing thundr.yml or ~/.thundr/config.yml");
+        if (! file_exists($projectYaml) || ! file_exists($globalYaml)) {
+            error('❌ Missing thundr.yml or ~/.thundr/config.yml');
+
             return Command::FAILURE;
         }
 
@@ -35,8 +37,9 @@ class SiteEnvCommand extends Command
         $serverKey = $project['server'] ?? null;
         $server = $global['servers'][$serverKey] ?? null;
 
-        if (!$server) {
+        if (! $server) {
             error("❌ Server '{$serverKey}' not found in global config.");
+
             return Command::FAILURE;
         }
 
@@ -58,6 +61,7 @@ class SiteEnvCommand extends Command
             $process->run(function ($type, $buffer) use ($output) {
                 $output->write($buffer);
             });
+
             return Command::SUCCESS;
         }
 
@@ -65,13 +69,14 @@ class SiteEnvCommand extends Command
         $cmd = "ssh {$sshOptions} {$user}@{$host} 'cat {$envPath}'";
         $process = Process::fromShellCommandline($cmd);
         $process->run();
-        if (!$process->isSuccessful()) {
-            error("❌ Failed to read remote .env file.");
+        if (! $process->isSuccessful()) {
+            error('❌ Failed to read remote .env file.');
+
             return Command::FAILURE;
         }
 
-        $lines = explode("
-", trim($process->getOutput()));
+        $lines = explode('
+', trim($process->getOutput()));
         $envVars = [];
         foreach ($lines as $line) {
             if (str_contains($line, '=')) {
@@ -84,13 +89,14 @@ class SiteEnvCommand extends Command
             $key = text('Enter the key');
             if (array_key_exists($key, $envVars)) {
                 error("❌ {$key} already exists.");
+
                 return Command::FAILURE;
             }
             $value = text("Enter the value for {$key}");
             if (confirm("Add {$key}={$value} to the .env file?")) {
                 $append = "echo \"{$key}={$value}\" | ssh {$sshOptions} {$user}@{$host} 'cat >> {$envPath}'";
                 Process::fromShellCommandline($append)->run();
-                info("✅ Added.");
+                info('✅ Added.');
             }
         }
 
@@ -103,7 +109,7 @@ class SiteEnvCommand extends Command
                 $escapedNew = escapeshellarg("{$key}={$new}");
                 $cmd = "ssh {$sshOptions} {$user}@{$host} 'sed -i.bak \"/^{$key}=/c\\{$key}={$new}\" {$envPath}'";
                 Process::fromShellCommandline($cmd)->run();
-                info("✅ Updated.");
+                info('✅ Updated.');
             }
         }
 
@@ -112,7 +118,7 @@ class SiteEnvCommand extends Command
             if (confirm("Are you sure you want to delete {$key}?")) {
                 $cmd = "ssh {$sshOptions} {$user}@{$host} 'sed -i.bak \"/^{$key}=/d\" {$envPath}'";
                 Process::fromShellCommandline($cmd)->run();
-                info("✅ Deleted.");
+                info('✅ Deleted.');
             }
         }
 

@@ -7,8 +7,8 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
+
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 
@@ -25,11 +25,12 @@ class SiteLogsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $cwd = getcwd();
-        $projectYaml = $cwd . '/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')) . '/.thundr/config.yml';
+        $projectYaml = $cwd.'/thundr.yml';
+        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
 
-        if (!file_exists($projectYaml) || !file_exists($globalYaml)) {
-            error("❌ Missing thundr.yml or ~/.thundr/config.yml");
+        if (! file_exists($projectYaml) || ! file_exists($globalYaml)) {
+            error('❌ Missing thundr.yml or ~/.thundr/config.yml');
+
             return Command::FAILURE;
         }
 
@@ -40,8 +41,9 @@ class SiteLogsCommand extends Command
         $serverKey = $project['server'] ?? null;
         $server = $global['servers'][$serverKey] ?? null;
 
-        if (!$server) {
+        if (! $server) {
             error("❌ Server '{$serverKey}' not found in global config.");
+
             return Command::FAILURE;
         }
 
@@ -58,7 +60,7 @@ class SiteLogsCommand extends Command
         $cmd = "tail -n {$lines} -f {$logPath}";
 
         if ($grep) {
-            $cmd .= " | grep --line-buffered " . escapeshellarg($grep);
+            $cmd .= ' | grep --line-buffered '.escapeshellarg($grep);
         }
 
         $sshCommand = "ssh {$sshOptions} {$user}@{$host} '{$cmd}'";

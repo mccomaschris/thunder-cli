@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
-use function Laravel\Prompts\info;
+
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\outro;
 
@@ -18,16 +18,18 @@ class SiteCreateCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $cwd = getcwd();
-        $projectYaml = $cwd . '/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')) . '/.thundr/config.yml';
+        $projectYaml = $cwd.'/thundr.yml';
+        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
 
-        if (!file_exists($projectYaml)) {
-            error("❌ No thundr.yml found in this directory.");
+        if (! file_exists($projectYaml)) {
+            error('❌ No thundr.yml found in this directory.');
+
             return Command::FAILURE;
         }
 
-        if (!file_exists($globalYaml)) {
-            error("❌ Missing ~/.thundr/config.yml");
+        if (! file_exists($globalYaml)) {
+            error('❌ Missing ~/.thundr/config.yml');
+
             return Command::FAILURE;
         }
 
@@ -36,8 +38,9 @@ class SiteCreateCommand extends Command
 
         $serverKey = $project['server'] ?? null;
         $server = $global['servers'][$serverKey] ?? null;
-        if (!$server) {
+        if (! $server) {
             error("❌ Server '{$serverKey}' not found in global config.");
+
             return Command::FAILURE;
         }
 
@@ -52,7 +55,7 @@ class SiteCreateCommand extends Command
         $sharedDirs = [
             "$deployBase/releases",
             "$deployBase/shared/storage",
-            "$deployBase/shared/public/uploads"
+            "$deployBase/shared/public/uploads",
         ];
 
         $commands = [];
@@ -62,8 +65,8 @@ class SiteCreateCommand extends Command
 
         // Generate nginx config from stub
         $possiblePaths = [
-            __DIR__ . '/../../../resources/stubs/nginx.stub', // local dev
-            __DIR__ . '/../../resources/stubs/nginx.stub',    // global vendor install
+            __DIR__.'/../../../resources/stubs/nginx.stub', // local dev
+            __DIR__.'/../../resources/stubs/nginx.stub',    // global vendor install
         ];
 
         $stubPath = null;
@@ -75,8 +78,9 @@ class SiteCreateCommand extends Command
             }
         }
 
-        if (!$stubPath || !file_exists($stubPath)) {
-            error("❌ Nginx stub not found. Looked in:\n" . implode("\n", $possiblePaths));
+        if (! $stubPath || ! file_exists($stubPath)) {
+            error("❌ Nginx stub not found. Looked in:\n".implode("\n", $possiblePaths));
+
             return Command::FAILURE;
         }
 
@@ -104,19 +108,20 @@ class SiteCreateCommand extends Command
         $scpProcess = Process::fromShellCommandline($uploadCmd);
         $scpProcess->run();
 
-        if (!$scpProcess->isSuccessful()) {
-            error("❌ Failed to upload Nginx config via SCP.");
+        if (! $scpProcess->isSuccessful()) {
+            error('❌ Failed to upload Nginx config via SCP.');
+
             return Command::FAILURE;
         }
 
         $commands[] = "sudo mv {$tmpFile} /etc/nginx/sites-available/{$rootDomain}";
         $commands[] = "sudo ln -sf /etc/nginx/sites-available/{$rootDomain} /etc/nginx/sites-enabled/{$rootDomain}";
-        $commands[] = "sudo nginx -t && sudo systemctl reload nginx";
+        $commands[] = 'sudo nginx -t && sudo systemctl reload nginx';
 
         $commands[] = "[ -f {$deployBase}/current/artisan ] && cd {$deployBase}/current && sudo -u {$user} php artisan key:generate";
 
         // Build shell script
-        $script = implode(" && ", $commands);
+        $script = implode(' && ', $commands);
 
         // Run commands remotely
         $sshKey = $server['ssh_key'] ?? null;
@@ -132,12 +137,14 @@ class SiteCreateCommand extends Command
         // Clean up local temp file
         unlink("/tmp/nginx_{$rootDomain}.conf");
 
-        if (!$process->isSuccessful()) {
+        if (! $process->isSuccessful()) {
             error("❌ Failed to create site: {$rootDomain}");
+
             return Command::FAILURE;
         }
 
         outro("✅ Site '{$rootDomain}' created and Nginx configured.");
+
         return Command::SUCCESS;
     }
 }

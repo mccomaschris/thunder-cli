@@ -7,20 +7,22 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
-use function Laravel\Prompts\select;
+
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\info;
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\select;
 
 #[AsCommand(name: 'config:delete', description: 'Delete a server from your global config')]
 class ConfigDeleteServerCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $configPath = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')) . '/.thundr/config.yml';
+        $configPath = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
 
-        if (!file_exists($configPath)) {
-            error("❌ Global config file not found at ~/.thundr/config.yml");
+        if (! file_exists($configPath)) {
+            error('❌ Global config file not found at ~/.thundr/config.yml');
+
             return Command::FAILURE;
         }
 
@@ -28,7 +30,8 @@ class ConfigDeleteServerCommand extends Command
         $servers = $config['servers'] ?? [];
 
         if (empty($servers)) {
-            error("❌ No servers found to delete.");
+            error('❌ No servers found to delete.');
+
             return Command::FAILURE;
         }
 
@@ -37,14 +40,16 @@ class ConfigDeleteServerCommand extends Command
             options: array_keys($servers)
         );
 
-        if (!confirm("Are you sure you want to delete '{$serverKey}'? This action cannot be undone.")) {
-            info("❌ Deletion cancelled.");
+        if (! confirm("Are you sure you want to delete '{$serverKey}'? This action cannot be undone.")) {
+            info('❌ Deletion cancelled.');
+
             return Command::SUCCESS;
         }
 
         unset($config['servers'][$serverKey]);
         file_put_contents($configPath, Yaml::dump($config, 4));
         info("✅ Server '{$serverKey}' deleted from config.");
+
         return Command::SUCCESS;
     }
 }

@@ -8,11 +8,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\outro;
-use function Laravel\Prompts\warning;
 
 #[AsCommand(name: 'site:cron', description: 'Toggle the cron job to run the Laravel scheduler for Artisan commands')]
 class SiteCronCommand extends Command
@@ -20,11 +20,12 @@ class SiteCronCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $cwd = getcwd();
-        $projectYaml = $cwd . '/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')) . '/.thundr/config.yml';
+        $projectYaml = $cwd.'/thundr.yml';
+        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
 
-        if (!file_exists($projectYaml) || !file_exists($globalYaml)) {
-            error("❌ Missing thundr.yml or ~/.thundr/config.yml");
+        if (! file_exists($projectYaml) || ! file_exists($globalYaml)) {
+            error('❌ Missing thundr.yml or ~/.thundr/config.yml');
+
             return Command::FAILURE;
         }
 
@@ -36,8 +37,9 @@ class SiteCronCommand extends Command
         $serverKey = $project['server'] ?? null;
         $server = $global['servers'][$serverKey] ?? null;
 
-        if (!$server) {
+        if (! $server) {
             error("❌ Server '{$serverKey}' not found in global config.");
+
             return Command::FAILURE;
         }
 
@@ -47,7 +49,7 @@ class SiteCronCommand extends Command
         $sshOptions = $sshKey ? "-i {$sshKey}" : '';
 
         // Connect to the server to check the cron jobs.
-        $phpPath = "/usr/bin/php"; // or detect dynamically
+        $phpPath = '/usr/bin/php'; // or detect dynamically
         $cronJobLine = "* * * * * {$phpPath} /var/www/html/{$rootDomain}/current/artisan schedule:run >> /dev/null 2>&1";
 
         $matchFragment = "/var/www/html/{$rootDomain}/current/artisan schedule:run";
@@ -57,7 +59,7 @@ class SiteCronCommand extends Command
         $sshCheckCron->run();
 
         if ($sshCheckCron->isSuccessful()) {
-            if (confirm("The scheduler cron job already exists. Do you want to **remove** it?")) {
+            if (confirm('The scheduler cron job already exists. Do you want to **remove** it?')) {
                 $matchFragment = "/var/www/html/{$rootDomain}/current/artisan schedule:run";
                 $escapedMatch = escapeshellarg($matchFragment); // single-quoted string
 
@@ -69,37 +71,38 @@ class SiteCronCommand extends Command
                 CMD;
 
                 // Escape for remote execution
-                $sshCmd = "ssh {$sshOptions} {$user}@{$host} " . escapeshellarg($removeCronCmd);
+                $sshCmd = "ssh {$sshOptions} {$user}@{$host} ".escapeshellarg($removeCronCmd);
 
-                info("🚀 Removing scheduler cron job...");
+                info('🚀 Removing scheduler cron job...');
                 $removeCron = Process::fromShellCommandline($sshCmd);
                 $removeCron->run();
 
                 if ($removeCron->isSuccessful()) {
-                    outro("✅ Cron job removed.");
+                    outro('✅ Cron job removed.');
                 } else {
-                    error("❌ Failed to remove cron job.");
+                    error('❌ Failed to remove cron job.');
                 }
             } else {
-                outro("❌ Cron job not removed.");
+                outro('❌ Cron job not removed.');
             }
+
             return Command::SUCCESS;
         } else {
-            if (confirm("The scheduler cron job is not set. Do you want to **add** it?")) {
-                $addCronCmd = "(crontab -l 2>/dev/null; echo \"" . $cronJobLine . "\") | crontab -";
-                $sshCmd = "ssh {$sshOptions} {$user}@{$host} '" . $addCronCmd . "'";
+            if (confirm('The scheduler cron job is not set. Do you want to **add** it?')) {
+                $addCronCmd = '(crontab -l 2>/dev/null; echo "'.$cronJobLine.'") | crontab -';
+                $sshCmd = "ssh {$sshOptions} {$user}@{$host} '".$addCronCmd."'";
 
-                info("🚀 Adding scheduler cron job...");
+                info('🚀 Adding scheduler cron job...');
                 $addCron = Process::fromShellCommandline($sshCmd);
                 $addCron->run();
 
                 if ($addCron->isSuccessful()) {
-                    outro("✅ Cron job added.");
+                    outro('✅ Cron job added.');
                 } else {
-                    error("❌ Failed to add cron job.");
+                    error('❌ Failed to add cron job.');
                 }
             } else {
-                outro("❌ Cron job not added.");
+                outro('❌ Cron job not added.');
             }
         }
 

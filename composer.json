@@ -15,5 +15,14 @@
 	  "php": "^8.2"
 	},
 	"bin": ["bin/thundr"],
-	"license": "MIT"
-  }
+	"license": "MIT",
+	"require-dev": {
+		"phpstan/phpstan": "^2.1",
+		"laravel/pint": "^1.21"
+	},
+	"scripts": {
+		"lint": "pint && phpstan analyse",
+		"lint:fix": "pint",
+		"lint:types": "phpstan analyse"
+	}
+}

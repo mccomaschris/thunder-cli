@@ -7,26 +7,27 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
+
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\warning;
 use function Laravel\Prompts\table;
+use function Laravel\Prompts\warning;
 
 #[AsCommand(name: 'config:servers', description: 'List available servers and project details')]
 class ConfigListServersCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $configPath = $_SERVER['HOME'] . '/.thundr/config.yml';
-        $projectPath = getcwd() . '/thundr.yml';
+        $configPath = $_SERVER['HOME'].'/.thundr/config.yml';
+        $projectPath = getcwd().'/thundr.yml';
 
-        info("Global Servers:");
-        if (!file_exists($configPath)) {
-            warning("No global config found at ~/.thundr/config.yml");
-            info("You can create one by running `thundr init`.");
+        info('Global Servers:');
+        if (! file_exists($configPath)) {
+            warning('No global config found at ~/.thundr/config.yml');
+            info('You can create one by running `thundr init`.');
         } else {
             $config = Yaml::parseFile($configPath);
 
-            if (!empty($config['servers'])) {
+            if (! empty($config['servers'])) {
                 table(
                     headers: ['Server', 'User', 'Host', 'SSH Key'],
                     rows: array_map(function ($key, $server) {
@@ -39,7 +40,7 @@ class ConfigListServersCommand extends Command
                     }, array_keys($config['servers']), $config['servers']),
                 );
             } else {
-                info("No servers configured yet..");
+                info('No servers configured yet..');
             }
         }
 

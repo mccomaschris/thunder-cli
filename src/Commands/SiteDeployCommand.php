@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
+
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\outro;
@@ -18,24 +19,27 @@ class SiteDeployCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $cwd = getcwd();
-        $projectYaml = $cwd . '/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')) . '/.thundr/config.yml';
+        $projectYaml = $cwd.'/thundr.yml';
+        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
 
-        if (!file_exists($projectYaml) || !file_exists($globalYaml)) {
-            error("❌ Missing thundr.yml or ~/.thundr/config.yml");
+        if (! file_exists($projectYaml) || ! file_exists($globalYaml)) {
+            error('❌ Missing thundr.yml or ~/.thundr/config.yml');
+
             return Command::FAILURE;
         }
 
         $gitCheck = Process::fromShellCommandline('git status --porcelain');
         $gitCheck->run();
 
-        if (!$gitCheck->isSuccessful()) {
+        if (! $gitCheck->isSuccessful()) {
             error("❌ Failed to run 'git status'. Are you in a Git repository?");
+
             return Command::FAILURE;
         }
 
         if (trim($gitCheck->getOutput()) !== '') {
-            error("❌ Git working directory is not clean. Please commit or stash changes before deploying.");
+            error('❌ Git working directory is not clean. Please commit or stash changes before deploying.');
+
             return Command::FAILURE;
         }
 
@@ -50,8 +54,9 @@ class SiteDeployCommand extends Command
         $serverKey = $project['server'];
         $server = $global['servers'][$serverKey] ?? null;
 
-        if (!$server) {
+        if (! $server) {
             error("❌ Server '{$serverKey}' not found in ~/.thundr/config.yml");
+
             return Command::FAILURE;
         }
 
@@ -103,7 +108,7 @@ class SiteDeployCommand extends Command
             $commands[] = "sudo -u {$user} php please stache:warm";
         }
 
-        $initialScript = implode(" && ", $commands);
+        $initialScript = implode(' && ', $commands);
         $initialSSH = "ssh {$sshOptions} {$user}@{$host} '{$initialScript}'";
 
         $process = Process::fromShellCommandline($initialSSH);
@@ -112,12 +117,13 @@ class SiteDeployCommand extends Command
             $output->write($buffer);
         });
 
-        if (!$process->isSuccessful()) {
-            error("❌ Deployment failed before switching symlink. No changes made to live site.");
+        if (! $process->isSuccessful()) {
+            error('❌ Deployment failed before switching symlink. No changes made to live site.');
+
             return Command::FAILURE;
         }
 
-        $finalScript = implode(" && ", [
+        $finalScript = implode(' && ', [
             // Set up symlinks
             "rm -rf {$newRelease}/storage",
             "ln -s {$deployBase}/shared/storage {$newRelease}/storage",
@@ -148,7 +154,7 @@ class SiteDeployCommand extends Command
             "sudo systemctl reload php{$phpVersion}-fpm && sudo systemctl reload nginx",
 
             // Prune old releases (keep 5 most recent)
-            "cd {$releasesDir} && [ -d . ] && ls -1t | tail -n +6 | xargs -I{} rm -rf {}"
+            "cd {$releasesDir} && [ -d . ] && ls -1t | tail -n +6 | xargs -I{} rm -rf {}",
         ]);
 
         $finalSSH = "ssh {$sshOptions} {$user}@{$host} '{$finalScript}'";
@@ -157,12 +163,14 @@ class SiteDeployCommand extends Command
             $output->write($buffer);
         });
 
-        if (!$finalProcess->isSuccessful()) {
-            error("❌ Final symlink or service reload failed. Site might still be running the previous release.");
+        if (! $finalProcess->isSuccessful()) {
+            error('❌ Final symlink or service reload failed. Site might still be running the previous release.');
+
             return Command::FAILURE;
         }
 
         outro("✅ Deployment complete! New release deployed at: {$newRelease}");
+
         return Command::SUCCESS;
     }
 }

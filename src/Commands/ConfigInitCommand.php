@@ -7,21 +7,22 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
+
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\outro;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
-use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
-use function Laravel\Prompts\outro;
 
 #[AsCommand(name: 'config:init', description: 'Add or update a server or Cloudflare API in ~/.thundr/config.yml')]
 class ConfigInitCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $configPath = $_SERVER['HOME'] . '/.thundr/config.yml';
+        $configPath = $_SERVER['HOME'].'/.thundr/config.yml';
 
         // Ensure directory exists
-        if (!file_exists(dirname($configPath))) {
+        if (! file_exists(dirname($configPath))) {
             mkdir(dirname($configPath), 0755, true);
         }
 
@@ -40,8 +41,9 @@ class ConfigInitCommand extends Command
             // If it already exists, confirm overwrite
             if (isset($config['servers'][$serverKey])) {
                 $confirmOverwrite = confirm("Server '{$serverKey}' already exists. Overwrite?", default: false);
-                if (!$confirmOverwrite) {
-                    warning("Aborted.");
+                if (! $confirmOverwrite) {
+                    warning('Aborted.');
+
                     return Command::SUCCESS;
                 }
             }
@@ -68,7 +70,7 @@ class ConfigInitCommand extends Command
                 'account_id' => $accountId ?: null,
             ];
 
-            outro("✅ Cloudflare credentials saved.");
+            outro('✅ Cloudflare credentials saved.');
         }
 
         if ($choice === "Let's Encrpyt") {
