@@ -1,6 +1,6 @@
 {
-	"name": "mccomaschris/thundrcli",
-	"description": "Thundr CLI for managing Laravel and Statamic deploys",
+	"name": "mccomaschris/thundr-cli",
+	"description": "Thundr CLI for managing Laravel and Statamic sites.",
 	"type": "project",
 	"autoload": {
 	  "psr-4": {
