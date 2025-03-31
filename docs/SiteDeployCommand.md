@@ -23,4 +23,4 @@ thundr site:deploy
 
 ## Notes
 
-Keeps last 5 releases and skips migrations if DB is not ready.
+Keeps last 5 releases.

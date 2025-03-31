@@ -72,7 +72,7 @@ operating_system: ubuntu
 ## Full Command Reference
 We’ve documented each command with descriptions, usage examples, and notes:
 
-View Full CLI Documentation
+[View Full CLI Documentation](https://mccomaschris.github.io/thunder-cli/)
 
 ---
 
