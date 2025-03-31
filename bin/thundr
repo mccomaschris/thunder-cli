@@ -1,7 +1,30 @@
 #!/usr/bin/env php
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+// Unset memory limit
+ini_set('memory_limit', -1);
+
+if (version_compare(PHP_VERSION, '8.2.0', '<') === true) {
+    fwrite(STDERR, "\n");
+    fwrite(STDERR, 'Sorry, your PHP version (' . PHP_VERSION . ') is no longer supported.' . "\n");
+    fwrite(STDERR, 'Upgrade to PHP 8.2 or newer to use Thundr. ' . "\n\n");
+    exit(1);
+}
+
+if (version_compare(PHP_VERSION, '8.5.0', '>=') === true) {
+    fwrite(STDERR, "\n");
+    fwrite(STDERR, 'PHP 8.5+ is not supported by this version of Thundr.' . "\n");
+    fwrite(STDERR, "Stopping.\n\n");
+    exit(1);
+}
+
+if (file_exists($path = __DIR__ . '/../vendor/autoload.php')
+        || file_exists($path = __DIR__ . '/../../autoload.php')
+        || file_exists($path = __DIR__ . '/../../../autoload.php')) {
+    include_once($path);
+} else {
+    throw new \Exception('Could not locate autoload.php');
+}
 
 $app = new \Mccomaschris\ThundrCli\Application();
 $app->run();
