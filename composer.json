@@ -1,5 +1,5 @@
 {
-	"name": "mccomaschris/thundr",
+	"name": "mccomaschris/thundrcli",
 	"description": "Thundr CLI for managing Laravel and Statamic deploys",
 	"type": "project",
 	"autoload": {
