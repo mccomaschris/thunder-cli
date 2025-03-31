@@ -15,5 +15,6 @@
 	},
 	"bin": ["bin/thundr"],
 	"minimum-stability": "dev",
-	"prefer-stable": true
+	"prefer-stable": true,
+	"version": "dev-main"
   }

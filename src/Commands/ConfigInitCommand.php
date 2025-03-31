@@ -13,8 +13,8 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\warning;
 use function Laravel\Prompts\outro;
 
-#[AsCommand(name: 'config', description: 'Add or update a server or Cloudflare API in ~/.thundr/config.yml')]
-class ConfigCommand extends Command
+#[AsCommand(name: 'config:init', description: 'Add or update a server or Cloudflare API in ~/.thundr/config.yml')]
+class ConfigInitCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -30,7 +30,8 @@ class ConfigCommand extends Command
 
         $choice = select('What would you like to configure?', [
             'Server',
-            'Cloudflare'
+            'Cloudflare',
+            "Let's Encrpyt",
         ]);
 
         if ($choice === 'Server') {
@@ -68,6 +69,18 @@ class ConfigCommand extends Command
             ];
 
             outro("✅ Cloudflare credentials saved.");
+        }
+
+        if ($choice === "Let's Encrpyt") {
+            $email = text('Email for Let\'s Encrypt notifications:');
+            $staging = confirm('Use staging environment for testing?', default: false);
+
+            $config['letsencrypt'] = [
+                'email' => $email,
+                'staging' => $staging,
+            ];
+
+            outro("✅ Let's Encrypt settings saved.");
         }
 
         file_put_contents($configPath, Yaml::dump($config, 4, 2));

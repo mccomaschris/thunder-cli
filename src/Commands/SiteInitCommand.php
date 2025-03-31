@@ -13,8 +13,8 @@ use function Laravel\Prompts\outro;
 use function Laravel\Prompts\warning;
 use function Laravel\Prompts\error;
 
-#[AsCommand(name: 'init', description: 'Initialize a new thundr.yml file for this project')]
-class InitCommand extends Command
+#[AsCommand(name: 'site:init', description: 'Initialize a new thundr.yml file for this project')]
+class SiteInitCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -58,6 +58,26 @@ class InitCommand extends Command
         ];
 
         file_put_contents($configPath, Yaml::dump($config, 4, 2));
+
+        $gitignorePath = $cwd . '/.gitignore';
+
+        if (file_exists($gitignorePath)) {
+            $lines = file($gitignorePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            $suggested = [
+                '/storage/framework/thundr-files/',
+                '/storage/logs/',
+            ];
+
+            $missing = array_filter($suggested, fn($entry) => !in_array($entry, $lines));
+
+            if (!empty($missing)) {
+                if (confirm("Add recommended Thundr entries to .gitignore?")) {
+                    file_put_contents($gitignorePath, PHP_EOL . implode(PHP_EOL, $missing) . PHP_EOL, FILE_APPEND);
+                    info("✅ Added entries to .gitignore.");
+                }
+            }
+        }
+
         outro("✅ thundr.yml created successfully.");
 
         return Command::SUCCESS;

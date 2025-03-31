@@ -9,9 +9,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\warning;
+use function Laravel\Prompts\table;
 
-#[AsCommand(name: 'list', description: 'List available servers and project details')]
-class ListCommand extends Command
+#[AsCommand(name: 'config:servers', description: 'List available servers and project details')]
+class ConfigListServersCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -24,10 +25,19 @@ class ListCommand extends Command
             info("You can create one by running `thundr init`.");
         } else {
             $config = Yaml::parseFile($configPath);
+
             if (!empty($config['servers'])) {
-                foreach ($config['servers'] as $key => $server) {
-                    info("- <info>{$key}</info>: {$server['user']}@{$server['host']} (key: {$server['ssh_key']})");
-                }
+                table(
+                    headers: ['Server', 'User', 'Host', 'SSH Key'],
+                    rows: array_map(function ($key, $server) {
+                        return [
+                            $key,
+                            $server['user'],
+                            $server['host'],
+                            $server['ssh_key'] ?? 'N/A',
+                        ];
+                    }, array_keys($config['servers']), $config['servers']),
+                );
             } else {
                 info("No servers configured yet..");
             }

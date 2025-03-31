@@ -10,8 +10,9 @@ use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\outro;
 
-#[AsCommand(name: 'create', description: 'Provision a new site on the remote server')]
+#[AsCommand(name: 'site:create', description: 'Provision a new site on the remote server')]
 class SiteCreateCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -56,11 +57,28 @@ class SiteCreateCommand extends Command
 
         $commands = [];
         foreach ($sharedDirs as $dir) {
-            $commands[] = "mkdir -p {$dir}";
+            $commands[] = "sudo mkdir -p {$dir}";
         }
 
         // Generate nginx config from stub
-        $stubPath = realpath(__DIR__ . '/../../../resources/stubs/nginx.stub');
+        $possiblePaths = [
+            __DIR__ . '/../../../resources/stubs/nginx.stub', // local dev
+            __DIR__ . '/../../resources/stubs/nginx.stub',    // global vendor install
+        ];
+
+        $stubPath = null;
+
+        foreach ($possiblePaths as $path) {
+            if (file_exists($path)) {
+                $stubPath = realpath($path);
+                break;
+            }
+        }
+
+        if (!$stubPath || !file_exists($stubPath)) {
+            error("❌ Nginx stub not found. Looked in:\n" . implode("\n", $possiblePaths));
+            return Command::FAILURE;
+        }
 
         $stub = file_get_contents($stubPath);
 
@@ -82,9 +100,20 @@ class SiteCreateCommand extends Command
         file_put_contents("/tmp/nginx_{$rootDomain}.conf", $nginxConfig);
 
         $uploadCmd = "scp {$sshOptions} /tmp/nginx_{$rootDomain}.conf {$user}@{$host}:{$tmpFile}";
+
+        $scpProcess = Process::fromShellCommandline($uploadCmd);
+        $scpProcess->run();
+
+        if (!$scpProcess->isSuccessful()) {
+            error("❌ Failed to upload Nginx config via SCP.");
+            return Command::FAILURE;
+        }
+
         $commands[] = "sudo mv {$tmpFile} /etc/nginx/sites-available/{$rootDomain}";
         $commands[] = "sudo ln -sf /etc/nginx/sites-available/{$rootDomain} /etc/nginx/sites-enabled/{$rootDomain}";
         $commands[] = "sudo nginx -t && sudo systemctl reload nginx";
+
+        $commands[] = "[ -f {$deployBase}/current/artisan ] && cd {$deployBase}/current && sudo -u {$user} php artisan key:generate";
 
         // Build shell script
         $script = implode(" && ", $commands);
@@ -97,7 +126,7 @@ class SiteCreateCommand extends Command
         $process = Process::fromShellCommandline($sshCmd);
         $process->setTimeout(300);
         $process->run(function ($type, $buffer) use ($output) {
-            info($buffer);
+            $output->write($buffer);
         });
 
         // Clean up local temp file
