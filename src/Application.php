@@ -25,8 +25,6 @@ class Application extends BaseApplication
     {
         parent::__construct('Thundr CLI', '1.0.0');
 
-
-
         $this->add(new ConfigInitCommand);
         $this->add(new ConfigEditServerCommand);
         $this->add(new ConfigDeleteServerCommand);
