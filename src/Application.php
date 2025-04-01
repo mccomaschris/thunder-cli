@@ -2,9 +2,9 @@
 
 namespace Mccomaschris\ThundrCli;
 
+use Mccomaschris\ThundrCli\Commands\ConfigCreateServerCommand;
 use Mccomaschris\ThundrCli\Commands\ConfigDeleteServerCommand;
 use Mccomaschris\ThundrCli\Commands\ConfigEditServerCommand;
-use Mccomaschris\ThundrCli\Commands\ConfigInitCommand;
 use Mccomaschris\ThundrCli\Commands\ConfigListServersCommand;
 use Mccomaschris\ThundrCli\Commands\SiteArtisanCommand;
 use Mccomaschris\ThundrCli\Commands\SiteCreateCommand;
@@ -25,7 +25,7 @@ class Application extends BaseApplication
     {
         parent::__construct('Thundr CLI', '1.0.0');
 
-        $this->add(new ConfigInitCommand);
+        $this->add(new ConfigCreateServerCommand);
         $this->add(new ConfigEditServerCommand);
         $this->add(new ConfigDeleteServerCommand);
         $this->add(new ConfigListServersCommand);

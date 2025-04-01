@@ -15,7 +15,7 @@ use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
 
 #[AsCommand(name: 'config:init', description: 'Add or update a server or Cloudflare API in ~/.thundr/config.yml')]
-class ConfigInitCommand extends Command
+class ConfigCreateServerCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {

@@ -2,6 +2,7 @@
 
 namespace Mccomaschris\ThundrCli\Commands;
 
+use Mccomaschris\ThundrCli\Support\ConfigLoader;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,15 +19,16 @@ class ConfigDeleteServerCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $configPath = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
+        $configPath = $_SERVER['HOME'].'/.thundr/config.yml';
 
-        if (! file_exists($configPath)) {
-            error('❌ Global config file not found at ~/.thundr/config.yml');
+        try {
+            $config = ConfigLoader::loadGlobalConfig();
+        } catch (\RuntimeException $e) {
+            error('❌ '.$e->getMessage());
 
             return Command::FAILURE;
         }
 
-        $config = Yaml::parseFile($configPath);
         $servers = $config['servers'] ?? [];
 
         if (empty($servers)) {
@@ -47,7 +49,8 @@ class ConfigDeleteServerCommand extends Command
         }
 
         unset($config['servers'][$serverKey]);
-        file_put_contents($configPath, Yaml::dump($config, 4));
+
+        file_put_contents($configPath, Yaml::dump($config, 4, 2));
         info("✅ Server '{$serverKey}' deleted from config.");
 
         return Command::SUCCESS;

@@ -7,6 +7,11 @@
 		"Mccomaschris\\ThundrCli\\": "src/"
 	  }
 	},
+	"autoload-dev": {
+		"psr-4": {
+			"Tests\\": "tests/"
+		}
+	},
 	"require": {
 	  "symfony/console": "^6.0",
 	  "symfony/yaml": "^6.0",
@@ -18,11 +23,18 @@
 	"license": "MIT",
 	"require-dev": {
 		"phpstan/phpstan": "^2.1",
-		"laravel/pint": "^1.21"
+		"laravel/pint": "^1.21",
+		"pestphp/pest": "^2.36",
+		"mockery/mockery": "^1.6"
 	},
 	"scripts": {
 		"lint": "pint && phpstan analyse",
 		"lint:fix": "pint",
 		"lint:types": "phpstan analyse"
+	},
+	"config": {
+		"allow-plugins": {
+			"pestphp/pest-plugin": true
+		}
 	}
 }
