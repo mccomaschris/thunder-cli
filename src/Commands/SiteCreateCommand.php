@@ -2,96 +2,110 @@
 
 namespace Mccomaschris\ThundrCli\Commands;
 
+use Mccomaschris\ThundrCli\Support\ConfigManager;
+use Mccomaschris\ThundrCli\Support\RemoteSshRunner;
+use Mccomaschris\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Yaml\Yaml;
 
+use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\outro;
 
 #[AsCommand(name: 'site:create', description: 'Provision a new site on the remote server')]
 class SiteCreateCommand extends Command
 {
+    use HandlesEnvironmentSelection;
+
+    protected function configure(): void
+    {
+        $this->configureEnvironmentOption();
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $cwd = getcwd();
-        $projectYaml = $cwd.'/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
+        $projectPath = ConfigManager::projectConfigPath();
 
-        if (! file_exists($projectYaml)) {
-            error('❌ No thundr.yml found in this directory.');
+        if (! file_exists($projectPath)) {
+            if (confirm('❓ No thundr.yml found. Would you like to generate one now?', default: true)) {
+                $initCommand = $this->getApplication()?->find('site:init');
+
+                if (! $initCommand) {
+                    error('❌ Could not find the site:init command.');
+
+                    return Command::FAILURE;
+                }
+
+                $exitCode = $initCommand->run($input, $output);
+
+                if ($exitCode !== Command::SUCCESS || ! file_exists($projectPath)) {
+                    error('❌ Failed to create thundr.yml. Aborting.');
+
+                    return Command::FAILURE;
+                }
+            } else {
+                error('❌ Cannot continue without thundr.yml.');
+
+                return Command::FAILURE;
+            }
+        }
+
+        try {
+            $env = $this->resolveEnvironment($input, $output);
+            $project = ConfigManager::loadProjectConfig($env);
+            $global = ConfigManager::loadGlobalConfig();
+        } catch (\RuntimeException $e) {
+            error('❌ '.$e->getMessage());
 
             return Command::FAILURE;
         }
 
-        if (! file_exists($globalYaml)) {
-            error('❌ Missing ~/.thundr/config.yml');
-
-            return Command::FAILURE;
-        }
-
-        $project = Yaml::parseFile($projectYaml);
-        $global = Yaml::parseFile($globalYaml);
-
-        $serverKey = $project['server'] ?? null;
+        $serverKey = $project['server'];
         $server = $global['servers'][$serverKey] ?? null;
+
         if (! $server) {
-            error("❌ Server '{$serverKey}' not found in global config.");
+            error("❌ Server '{$serverKey}' not found.");
 
             return Command::FAILURE;
         }
 
+        $ssh = RemoteSshRunner::make($server);
         $rootDomain = $project['root_domain'];
         $phpVersion = $project['php_version'] ?? '8.3';
-        $user = $server['user'] ?? 'thundr';
-        $host = $server['host'];
-        $sshKey = $server['ssh_key'] ?? null;
-        $sshOptions = $sshKey ? "-i {$sshKey}" : '';
-
+        $nakedRedirect = $project['naked_redirect'] ?? false;
         $deployBase = "/var/www/html/{$rootDomain}";
-        $sharedDirs = [
-            "$deployBase/releases",
-            "$deployBase/shared/storage",
-            "$deployBase/shared/public/uploads",
+
+        $commands = [
+            "sudo mkdir -p {$deployBase}/releases",
+            "sudo mkdir -p {$deployBase}/shared/storage",
+            "sudo mkdir -p {$deployBase}/shared/public/uploads",
         ];
 
-        $commands = [];
-        foreach ($sharedDirs as $dir) {
-            $commands[] = "sudo mkdir -p {$dir}";
-        }
-
-        // Generate nginx config from stub
-        $possiblePaths = [
-            __DIR__.'/../../../resources/stubs/nginx.stub', // local dev
-            __DIR__.'/../../resources/stubs/nginx.stub',    // global vendor install
+        // Load main nginx config stub
+        $mainStubPaths = [
+            __DIR__.'/../../../resources/stubs/nginx.stub',
+            __DIR__.'/../../resources/stubs/nginx.stub',
         ];
 
         $stubPath = null;
-
-        foreach ($possiblePaths as $path) {
+        foreach ($mainStubPaths as $path) {
             if (file_exists($path)) {
                 $stubPath = realpath($path);
                 break;
             }
         }
 
-        if (! $stubPath || ! file_exists($stubPath)) {
-            error("❌ Nginx stub not found. Looked in:\n".implode("\n", $possiblePaths));
+        if (! $stubPath) {
+            error("❌ Nginx stub not found. Looked in:\n".implode("\n", $mainStubPaths));
 
             return Command::FAILURE;
         }
 
         $stub = file_get_contents($stubPath);
-
         $serverType = strtolower($project['server_type'] ?? 'ubuntu');
-
-        $phpSocket = match ($serverType) {
-            'oracle' => 'php-fpm.sock',
-            default => "php{$phpVersion}-fpm.sock"
-        };
+        $phpSocket = $serverType === 'oracle' ? 'php-fpm.sock' : "php{$phpVersion}-fpm.sock";
 
         $nginxConfig = str_replace(
             ['{{ root_domain }}', '{{ php_version }}', '{{ php_socket }}'],
@@ -99,49 +113,67 @@ class SiteCreateCommand extends Command
             $stub
         );
 
-        $tmpFile = "/tmp/{$rootDomain}.conf";
+        $localTmp = "/tmp/nginx_{$rootDomain}.conf";
+        file_put_contents($localTmp, $nginxConfig);
+        $remoteTmp = "/tmp/{$rootDomain}.conf";
+        $ssh->upload($localTmp, $remoteTmp);
 
-        file_put_contents("/tmp/nginx_{$rootDomain}.conf", $nginxConfig);
-
-        $uploadCmd = "scp {$sshOptions} /tmp/nginx_{$rootDomain}.conf {$user}@{$host}:{$tmpFile}";
-
-        $scpProcess = Process::fromShellCommandline($uploadCmd);
-        $scpProcess->run();
-
-        if (! $scpProcess->isSuccessful()) {
-            error('❌ Failed to upload Nginx config via SCP.');
-
-            return Command::FAILURE;
-        }
-
-        $commands[] = "sudo mv {$tmpFile} /etc/nginx/sites-available/{$rootDomain}";
+        $commands[] = "sudo mv {$remoteTmp} /etc/nginx/sites-available/{$rootDomain}";
         $commands[] = "sudo ln -sf /etc/nginx/sites-available/{$rootDomain} /etc/nginx/sites-enabled/{$rootDomain}";
-        $commands[] = 'sudo nginx -t && sudo systemctl reload nginx';
 
-        $commands[] = "[ -f {$deployBase}/current/artisan ] && cd {$deployBase}/current && sudo -u {$user} php artisan key:generate";
-
-        // Build shell script
-        $script = implode(' && ', $commands);
-
-        // Run commands remotely
-        $sshKey = $server['ssh_key'] ?? null;
-        $sshOptions = $sshKey ? "-i {$sshKey}" : '';
-        $sshCmd = "ssh {$sshOptions} {$user}@{$host} '{$script}'";
-        $sshCmd = "ssh {$sshOptions} {$user}@{$host} '{$script}'";
-        $process = Process::fromShellCommandline($sshCmd);
-        $process->setTimeout(300);
-        $process->run(function ($type, $buffer) use ($output) {
-            $output->write($buffer);
-        });
-
-        // Clean up local temp file
-        unlink("/tmp/nginx_{$rootDomain}.conf");
-
-        if (! $process->isSuccessful()) {
-            error("❌ Failed to create site: {$rootDomain}");
-
-            return Command::FAILURE;
+        // Handle naked domain redirect config
+        if (str_starts_with($rootDomain, 'www.')) {
+            $nakedDomain = str_replace('www.', '', $rootDomain);
+        } else {
+            $nakedDomain = null;
         }
+
+        if ($nakedRedirect && isset($nakedDomain)) {
+            $nakedStubPaths = [
+                __DIR__.'/../../../resources/stubs/nginx-naked.stub',
+                __DIR__.'/../../resources/stubs/nginx-naked.stub',
+            ];
+
+            $nakedStubPath = null;
+            foreach ($nakedStubPaths as $path) {
+                if (file_exists($path)) {
+                    $nakedStubPath = realpath($path);
+                    break;
+                }
+            }
+
+            if (! $nakedStubPath) {
+                error("❌ Nginx naked domain redirect stub not found. Looked in:\n".implode("\n", $nakedStubPaths));
+
+                return Command::FAILURE;
+            }
+
+            $nakedStub = file_get_contents($nakedStubPath);
+            $nakedConfig = str_replace(
+                ['{{ naked_domain }}', '{{ root_domain }}'],
+                [$nakedDomain, $rootDomain],
+                $nakedStub
+            );
+
+            $localNaked = "/tmp/nginx_{$nakedDomain}.conf";
+            file_put_contents($localNaked, $nakedConfig);
+            $remoteNaked = "/tmp/{$nakedDomain}.conf";
+            $ssh->upload($localNaked, $remoteNaked);
+
+            $commands[] = "sudo mv {$remoteNaked} /etc/nginx/sites-available/{$nakedDomain}";
+            $commands[] = "sudo ln -sf /etc/nginx/sites-available/{$nakedDomain} /etc/nginx/sites-enabled/{$nakedDomain}";
+
+            unlink($localNaked);
+        }
+
+        // Reload Nginx and finalize
+        $commands[] = 'sudo nginx -t && sudo systemctl reload nginx';
+        $commands[] = "[ -f {$deployBase}/current/artisan ] && cd {$deployBase}/current && php artisan key:generate";
+        $commands[] = "[ -f {$deployBase}/current/artisan ] && cd {$deployBase}/current && php artisan config:clear";
+
+        $ssh->run(implode(' && ', $commands));
+
+        unlink($localTmp);
 
         outro("✅ Site '{$rootDomain}' created and Nginx configured.");
 

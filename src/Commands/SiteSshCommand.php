@@ -2,31 +2,36 @@
 
 namespace Mccomaschris\ThundrCli\Commands;
 
+use Mccomaschris\ThundrCli\Support\ConfigManager;
+use Mccomaschris\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Yaml\Yaml;
 
 use function Laravel\Prompts\error;
 
-#[AsCommand(name: 'site:ssh', description: 'SSH into the site server')]
+#[AsCommand(name: 'site:shell', description: 'SSH into the site server')]
 class SiteSshCommand extends Command
 {
+    use HandlesEnvironmentSelection;
+
+    protected function configure(): void
+    {
+        $this->configureEnvironmentOption();
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $cwd = getcwd();
-        $projectYaml = $cwd.'/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
-
-        if (! file_exists($projectYaml) || ! file_exists($globalYaml)) {
-            error('❌ Missing thundr.yml or ~/.thundr/config.yml');
+        try {
+            $env = $this->resolveEnvironment($input, $output);
+            $project = ConfigManager::loadProjectConfig($env);
+            $global = ConfigManager::loadGlobalConfig();
+        } catch (\RuntimeException $e) {
+            error('❌ '.$e->getMessage());
 
             return Command::FAILURE;
         }
-
-        $project = Yaml::parseFile($projectYaml);
-        $global = Yaml::parseFile($globalYaml);
 
         $serverKey = $project['server'] ?? null;
         $server = $global['servers'][$serverKey] ?? null;
@@ -38,18 +43,22 @@ class SiteSshCommand extends Command
         }
 
         $user = $server['user'] ?? 'thundr';
-        $host = $server['host'];
+        $host = $server['host'] ?? null;
         $sshKey = $server['ssh_key'] ?? null;
 
+        if (! $host) {
+            error('❌ Host is not defined for this server.');
+
+            return Command::FAILURE;
+        }
+
         $remotePath = "/var/www/html/{$project['root_domain']}/current";
-
         $sshOptions = $sshKey ? "-i {$sshKey}" : '';
-        $sshCommand = "ssh {$sshOptions} {$user}@{$host}";
 
+        // Final SSH command with working directory set
         $sshCommand = "ssh {$sshOptions} {$user}@{$host} 'cd {$remotePath} && exec \$SHELL'";
 
         $status = 0;
-
         passthru($sshCommand, $status);
 
         return $status === 0 ? Command::SUCCESS : Command::FAILURE;

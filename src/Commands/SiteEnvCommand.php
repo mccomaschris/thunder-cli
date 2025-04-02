@@ -2,12 +2,13 @@
 
 namespace Mccomaschris\ThundrCli\Commands;
 
+use Mccomaschris\ThundrCli\Support\ConfigManager;
+use Mccomaschris\ThundrCli\Support\RemoteSshRunner;
+use Mccomaschris\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\Process;
-use Symfony\Component\Yaml\Yaml;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
@@ -18,20 +19,24 @@ use function Laravel\Prompts\text;
 #[AsCommand(name: 'site:env', description: 'Manage environment variables on the remote server')]
 class SiteEnvCommand extends Command
 {
+    use HandlesEnvironmentSelection;
+
+    protected function configure(): void
+    {
+        $this->configureEnvironmentOption();
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $cwd = getcwd();
-        $projectYaml = $cwd.'/thundr.yml';
-        $globalYaml = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
-
-        if (! file_exists($projectYaml) || ! file_exists($globalYaml)) {
-            error('❌ Missing thundr.yml or ~/.thundr/config.yml');
+        try {
+            $env = $this->resolveEnvironment($input, $output);
+            $project = ConfigManager::loadProjectConfig($env);
+            $global = ConfigManager::loadGlobalConfig();
+        } catch (\RuntimeException $e) {
+            error('❌ '.$e->getMessage());
 
             return Command::FAILURE;
         }
-
-        $project = Yaml::parseFile($projectYaml);
-        $global = Yaml::parseFile($globalYaml);
 
         $rootDomain = $project['root_domain'];
         $serverKey = $project['server'] ?? null;
@@ -43,85 +48,120 @@ class SiteEnvCommand extends Command
             return Command::FAILURE;
         }
 
-        $user = $server['user'] ?? 'thundr';
-        $host = $server['host'];
-        $sshKey = $server['ssh_key'] ?? null;
-        $sshOptions = $sshKey ? "-i {$sshKey}" : '';
+        $ssh = RemoteSshRunner::make($server);
         $envPath = "/var/www/html/{$rootDomain}/shared/.env";
 
-        $choice = select(
-            'What would you like to do?',
-            ['View all environment variables', 'Add a new variable', 'Edit a variable', 'Delete a variable'],
-            scroll: 15
-        );
+        while (true) {
+            $choice = select(
+                'What would you like to do?',
+                ['View all environment variables', 'Add a new variable', 'Edit a variable', 'Delete a variable', 'Exit'],
+                scroll: 15
+            );
 
-        if ($choice === 'View all environment variables') {
-            $cmd = "ssh {$sshOptions} {$user}@{$host} 'cat {$envPath}'";
-            $process = Process::fromShellCommandline($cmd);
-            $process->run(function ($type, $buffer) use ($output) {
-                $output->write($buffer);
-            });
-
-            return Command::SUCCESS;
-        }
-
-        // Load current .env contents
-        $cmd = "ssh {$sshOptions} {$user}@{$host} 'cat {$envPath}'";
-        $process = Process::fromShellCommandline($cmd);
-        $process->run();
-        if (! $process->isSuccessful()) {
-            error('❌ Failed to read remote .env file.');
-
-            return Command::FAILURE;
-        }
-
-        $lines = explode('
-', trim($process->getOutput()));
-        $envVars = [];
-        foreach ($lines as $line) {
-            if (str_contains($line, '=')) {
-                [$k, $v] = explode('=', $line, 2);
-                $envVars[trim($k)] = trim($v);
+            if ($choice === 'Exit') {
+                info('👋 Goodbye!');
+                break;
             }
-        }
 
-        if ($choice === 'Add a new variable') {
-            $key = text('Enter the key');
-            if (array_key_exists($key, $envVars)) {
-                error("❌ {$key} already exists.");
+            if ($choice === 'View all environment variables') {
+                $all = $ssh->run("cat {$envPath}");
+                if ($all === false) {
+                    error('❌ Failed to read .env file.');
+                } else {
+                    info($all);
+                }
 
-                return Command::FAILURE;
+                continue;
             }
-            $value = text("Enter the value for {$key}");
-            if (confirm("Add {$key}={$value} to the .env file?")) {
-                $append = "echo \"{$key}={$value}\" | ssh {$sshOptions} {$user}@{$host} 'cat >> {$envPath}'";
-                Process::fromShellCommandline($append)->run();
-                info('✅ Added.');
-            }
-        }
 
-        if ($choice === 'Edit a variable') {
-            $key = select('Choose a variable to edit', array_keys($envVars), scroll: 15);
-            $current = $envVars[$key];
-            $new = text("New value for {$key}", default: $current);
-            if ($new !== $current && confirm("Replace {$key}={$current} with {$key}={$new}?")) {
-                $escapedKey = escapeshellarg($key);
-                $escapedNew = escapeshellarg("{$key}={$new}");
-                $cmd = "ssh {$sshOptions} {$user}@{$host} 'sed -i.bak \"/^{$key}=/c\\{$key}={$new}\" {$envPath}'";
-                Process::fromShellCommandline($cmd)->run();
-                info('✅ Updated.');
-            }
-        }
+            $allEnv = $ssh->run("cat {$envPath}");
+            if ($allEnv === false) {
+                error('❌ Failed to read remote .env file.');
 
-        if ($choice === 'Delete a variable') {
-            $key = select('Choose a variable to delete', array_keys($envVars), scroll: 15);
-            if (confirm("Are you sure you want to delete {$key}?")) {
-                $cmd = "ssh {$sshOptions} {$user}@{$host} 'sed -i.bak \"/^{$key}=/d\" {$envPath}'";
-                Process::fromShellCommandline($cmd)->run();
-                info('✅ Deleted.');
+                continue;
             }
+
+            $lines = explode("\n", trim($allEnv));
+            $envVars = [];
+            foreach ($lines as $line) {
+                if (str_contains($line, '=')) {
+                    [$k, $v] = explode('=', $line, 2);
+                    $envVars[trim($k)] = trim($v);
+                }
+            }
+
+            do {
+                if ($choice === 'Add a new variable') {
+                    $key = text('Enter the key');
+                    if (array_key_exists($key, $envVars)) {
+                        error("❌ {$key} already exists.");
+                        break;
+                    }
+                    $value = text("Enter the value for {$key}");
+                    if (confirm("Add {$key}={$value} to the .env file?")) {
+                        $append = $ssh->runWithStatus(<<<BASH
+                        tee -a {$envPath} > /dev/null <<'EOF'
+                        {$key}={$value}
+                        EOF
+                        BASH);
+
+                        if (! $append['success']) {
+                            error('❌ Failed to append to .env.');
+                        } else {
+                            info('✅ Added.');
+                            $envVars[$key] = $value;
+                        }
+                    }
+                }
+
+                if ($choice === 'Edit a variable') {
+                    if (empty($envVars)) {
+                        error('❌ No variables to edit.');
+                        break;
+                    }
+                    $key = select('Choose a variable to edit', array_keys($envVars), scroll: 15);
+                    $current = $envVars[$key];
+                    $new = text("New value for {$key}", default: $current);
+                    if ($new !== $current && confirm("Replace {$key}={$current} with {$key}={$new}?")) {
+                        $ok = $ssh->runWithStatus("sudo sed -i.bak \"/^{$key}=/c\\{$key}={$new}\" {$envPath}");
+                        if ($ok['success']) {
+                            info('✅ Updated.');
+                            $envVars[$key] = $new;
+                        } else {
+                            error('❌ Failed to update .env.');
+                        }
+                    }
+                }
+
+                if ($choice === 'Delete a variable') {
+                    if (empty($envVars)) {
+                        error('❌ No variables to delete.');
+                        break;
+                    }
+                    $key = select('Choose a variable to delete', array_keys($envVars), scroll: 15);
+                    if (confirm("Are you sure you want to delete {$key}?")) {
+                        $ok = $ssh->runWithStatus("sudo sed -i.bak \"/^{$key}=/d\" {$envPath}");
+                        if ($ok['success']) {
+                            info('✅ Deleted.');
+                            unset($envVars[$key]);
+                        } else {
+                            error('❌ Failed to delete variable.');
+                        }
+                    }
+                }
+            } while (confirm("Would you like to {$this->actionName($choice)} another variable?", default: false));
         }
 
         return Command::SUCCESS;
+    }
+
+    private function actionName(string $choice): string
+    {
+        return match ($choice) {
+            'Add a new variable' => 'add',
+            'Edit a variable' => 'edit',
+            'Delete a variable' => 'delete',
+            default => 'change',
+        };
     }
 }

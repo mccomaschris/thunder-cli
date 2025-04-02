@@ -1,6 +1,6 @@
 <?php
 
-use Mccomaschris\ThundrCli\Support\ConfigLoader;
+use Mccomaschris\ThundrCli\Support\ConfigManager;
 
 it('loads project config from a given path', function () {
     $yaml = <<<'YAML'
@@ -16,7 +16,7 @@ YAML;
     $tempFile = tempnam(sys_get_temp_dir(), 'thundr_');
     file_put_contents($tempFile, $yaml);
 
-    $config = ConfigLoader::loadProjectConfig($tempFile);
+    $config = ConfigManager::loadProjectConfig($tempFile);
 
     expect($config['root_domain'])->toBe('example.com');
     expect($config['php_version'])->toEqual('8.3');
@@ -30,7 +30,7 @@ YAML;
 });
 
 it('throws an error if the project config does not exist', function () {
-    ConfigLoader::loadProjectConfig('/invalid/path.yml');
+    ConfigManager::loadProjectConfig('/invalid/path.yml');
 })->throws(RuntimeException::class);
 
 it('loads global config from ~/.thundr/config.yml', function () {
@@ -52,7 +52,7 @@ YAML;
     // Override $_SERVER['HOME'] to mock the home directory
     $_SERVER['HOME'] = $home;
 
-    $config = ConfigLoader::loadGlobalConfig();
+    $config = ConfigManager::loadGlobalConfig();
 
     expect($config['cloudflare']['api_token'])->toBe('abc123');
     expect($config['servers']['staging']['ip'])->toBe('192.168.1.10');
@@ -72,5 +72,5 @@ it('throws an error if the global config does not exist', function () {
         unlink($mockHome.'/.thundr/config.yml');
     }
 
-    ConfigLoader::loadGlobalConfig();
+    ConfigManager::loadGlobalConfig();
 })->throws(RuntimeException::class);

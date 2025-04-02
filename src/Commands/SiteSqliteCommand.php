@@ -7,22 +7,20 @@ use Mccomaschris\ThundrCli\Support\RemoteSshRunner;
 use Mccomaschris\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 
-#[AsCommand(name: 'site:artisan', description: 'Run a remote artisan command on the server')]
-class SiteArtisanCommand extends Command
+#[AsCommand(name: 'site:sqlite', description: 'Add SSL (Cloudflare or Let\'s Encrypt) to site and configure nginx')]
+class SiteSqliteCommand extends Command
 {
     use HandlesEnvironmentSelection;
 
     protected function configure(): void
     {
         $this->configureEnvironmentOption();
-        $this->addArgument('artisan_command', InputArgument::REQUIRED, 'The artisan command to run (e.g. migrate, config:cache)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -42,27 +40,43 @@ class SiteArtisanCommand extends Command
         $server = $global['servers'][$serverKey] ?? null;
 
         if (! $server) {
-            error("❌ Server '{$serverKey}' not found in global config.");
+            error('❌ Server not found in global config.');
 
             return Command::FAILURE;
         }
+
+        $basePath = "/var/www/html/{$rootDomain}";
+        $sharedDbPath = "{$basePath}/shared/database";
+        $sharedDbFile = "{$sharedDbPath}/database.sqlite";
+        $currentDbPath = "{$basePath}/current/database";
 
         $ssh = RemoteSshRunner::make($server);
 
-        $command = $input->getArgument('artisan_command');
-        $remotePath = "/var/www/html/{$rootDomain}/current";
+        // Check if the shared database directory already exists
+        $checkDbFileCmd = "if [ ! -d {$sharedDbPath} ]; then echo 'not_exists'; else echo 'exists'; fi";
+        $checkDbResult = trim($ssh->run($checkDbFileCmd));
 
-        info("🎯 Running: php artisan {$command} on {$rootDomain}...");
-
-        $outputText = $ssh->run("cd {$remotePath} && php artisan {$command}");
-
-        if ($outputText === false) {
-            error('❌ Command failed.');
+        if ($checkDbResult === 'exists') {
+            error('❌ Shared database already exists.');
 
             return Command::FAILURE;
         }
 
-        $output->writeln($outputText);
+        info('Creating shared database directory and SQLite file...');
+
+        $commands = [
+            "sudo mkdir -p {$sharedDbPath}",
+            "sudo touch {$sharedDbFile}",
+            "sudo chmod 664 {$sharedDbFile}",
+            "sudo chown thundr:www-data {$sharedDbFile} || true",
+        ];
+
+        $ssh->run(implode(' && ', $commands));
+
+        info('Linking shared database to current release...');
+
+        $ssh->run("sudo rm -rf {$currentDbPath}");
+        $ssh->run("sudo ln -s {$sharedDbFile} {$currentDbPath}");
 
         return Command::SUCCESS;
     }

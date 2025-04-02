@@ -2,35 +2,36 @@
 
 namespace Mccomaschris\ThundrCli\Commands;
 
+use Mccomaschris\ThundrCli\Support\ConfigManager;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Yaml\Yaml;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
-#[AsCommand(name: 'config:edit', description: 'Edit a server in your global config')]
-class ConfigEditServerCommand extends Command
+#[AsCommand(name: 'server:edit', description: 'Edit a server in your global config')]
+class ServerEditCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $configPath = ($_SERVER['HOME'] ?? getenv('HOME') ?: getenv('USERPROFILE')).'/.thundr/config.yml';
-
-        if (! file_exists($configPath)) {
-            error('❌ Global config file not found at ~/.thundr/config.yml');
+        try {
+            $config = ConfigManager::loadGlobalConfig();
+        } catch (\RuntimeException $e) {
+            error('❌ '.$e->getMessage());
 
             return Command::FAILURE;
         }
 
-        $config = Yaml::parseFile($configPath);
+        $configPath = ConfigManager::globalConfigPath();
+
         $servers = $config['servers'] ?? [];
 
         if (empty($servers)) {
-            error('❌ No servers defined in global config.');
+            error('❌ No servers found to edit.');
 
             return Command::FAILURE;
         }
@@ -52,7 +53,9 @@ class ConfigEditServerCommand extends Command
         ];
 
         $config['servers'] = $servers;
-        file_put_contents($configPath, Yaml::dump($config, 4));
+
+        ConfigManager::saveGlobalConfig($config);
+
         info("✅ Server '{$serverKey}' updated.");
 
         return Command::SUCCESS;

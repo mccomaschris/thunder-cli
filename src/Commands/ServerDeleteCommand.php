@@ -2,32 +2,31 @@
 
 namespace Mccomaschris\ThundrCli\Commands;
 
-use Mccomaschris\ThundrCli\Support\ConfigLoader;
+use Mccomaschris\ThundrCli\Support\ConfigManager;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Yaml\Yaml;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 
-#[AsCommand(name: 'config:delete', description: 'Delete a server from your global config')]
-class ConfigDeleteServerCommand extends Command
+#[AsCommand(name: 'server:delete', description: 'Delete a server from your global config')]
+class ServerDeleteCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $configPath = $_SERVER['HOME'].'/.thundr/config.yml';
-
         try {
-            $config = ConfigLoader::loadGlobalConfig();
+            $config = ConfigManager::loadGlobalConfig();
         } catch (\RuntimeException $e) {
             error('❌ '.$e->getMessage());
 
             return Command::FAILURE;
         }
+
+        $configPath = ConfigManager::globalConfigPath();
 
         $servers = $config['servers'] ?? [];
 
@@ -50,7 +49,8 @@ class ConfigDeleteServerCommand extends Command
 
         unset($config['servers'][$serverKey]);
 
-        file_put_contents($configPath, Yaml::dump($config, 4, 2));
+        ConfigManager::saveGlobalConfig($config);
+
         info("✅ Server '{$serverKey}' deleted from config.");
 
         return Command::SUCCESS;

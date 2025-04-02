@@ -1,0 +1,7 @@
+# Redirect non-www HTTP to www
+server {
+    listen 80;
+    server_name {{ naked_domain }};
+
+    return 301 https://{{ root_domain }}$request_uri;
+}

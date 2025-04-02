@@ -2,6 +2,7 @@
 
 namespace Mccomaschris\ThundrCli\Commands;
 
+use Mccomaschris\ThundrCli\Support\ConfigManager;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -20,52 +21,70 @@ class SiteInitCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $cwd = getcwd();
-        $configPath = $cwd.'/thundr.yml';
-        $mainConfigPath = $_SERVER['HOME'].'/.thundr/config.yml';
-
-        if (file_exists($configPath)) {
-            error('❌ thundr.yml already exists in this directory.');
+        try {
+            $global = ConfigManager::loadGlobalConfig();
+        } catch (\RuntimeException $e) {
+            error('❌ '.$e->getMessage());
 
             return Command::FAILURE;
         }
 
-        if (! file_exists($mainConfigPath)) {
-            error("❌ No ~/.thundr/config.yml found. Please run 'thundr config' first.");
-
-            return Command::FAILURE;
-        }
-
-        $globalConfig = Yaml::parseFile($mainConfigPath);
-        $servers = $globalConfig['servers'] ?? [];
+        $servers = $global['servers'] ?? [];
 
         if (empty($servers)) {
-            error("❌ No servers found in ~/.thundr/config.yml. Add one with 'thundr config'.");
+            error("❌ No servers found in ~/.thundr/config.yml. Add one with 'thundr server:create'.");
 
             return Command::FAILURE;
         }
 
+        $configPath = getcwd().'/thundr.yml';
+        $existingConfig = ConfigManager::loadRawProjectConfig();
+
+        // Ask for environment name and ensure it's unique
+        $newEnv = text('Enter a unique environment name for this project (e.g. production):', default: 'production');
+
+        if (isset($existingConfig[$newEnv])) {
+            error("❌ An environment named '{$newEnv}' already exists in thundr.yml.");
+
+            return Command::FAILURE;
+        }
+
+        // Gather user input
         $rootDomain = text('Root domain (e.g. example.com):');
+
+        $nakedRedirect = false;
+        if (str_starts_with($rootDomain, 'www.')) {
+            $nakedDomain = str_replace('www.', '', $rootDomain);
+            $nakedRedirect = confirm("❓ Do you want to redirect naked domain ({$nakedDomain}) to www ({$rootDomain})?", default: true);
+        }
+
         $repo = text('GitHub repo (e.g. user/repo):');
         $branch = text('Branch to deploy:', default: 'main');
         $phpVersion = text('PHP version:', default: '8.3');
         $projectType = strtolower(select('Project type:', ['Laravel', 'Statamic']));
         $server = select('Which server should this project deploy to?', array_keys($servers));
-        $operatingSystem = select('Operating System:', ['Ubuntu', 'Oracle']);
+        $operatingSystem = strtolower(select('Operating System:', ['Ubuntu', 'Oracle']));
 
-        $config = [
+        // Add new env to config array
+        $existingConfig[$newEnv] = [
             'root_domain' => $rootDomain,
             'repo' => $repo,
             'branch' => $branch,
             'php_version' => $phpVersion,
             'project_type' => $projectType,
             'server' => $server,
-            'operating_system' => strtolower($operatingSystem),
+            'operating_system' => $operatingSystem,
         ];
 
-        file_put_contents($configPath, Yaml::dump($config, 4, 2));
+        if ($nakedRedirect) {
+            $existingConfig[$newEnv]['naked_redirect'] = $nakedRedirect;
+        }
 
-        $gitignorePath = $cwd.'/.gitignore';
+        // Save updated config
+        file_put_contents($configPath, Yaml::dump($existingConfig, 4, 2));
+
+        // Optionally update .gitignore
+        $gitignorePath = getcwd().'/.gitignore';
 
         if (file_exists($gitignorePath)) {
             $lines = file($gitignorePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -76,15 +95,13 @@ class SiteInitCommand extends Command
 
             $missing = array_filter($suggested, fn ($entry) => ! in_array($entry, $lines));
 
-            if (! empty($missing)) {
-                if (confirm('Add recommended Thundr entries to .gitignore?')) {
-                    file_put_contents($gitignorePath, PHP_EOL.implode(PHP_EOL, $missing).PHP_EOL, FILE_APPEND);
-                    info('✅ Added entries to .gitignore.');
-                }
+            if (! empty($missing) && confirm('Add recommended Thundr entries to .gitignore?')) {
+                file_put_contents($gitignorePath, PHP_EOL.implode(PHP_EOL, $missing).PHP_EOL, FILE_APPEND);
+                info('✅ Added entries to .gitignore.');
             }
         }
 
-        outro('✅ thundr.yml created successfully.');
+        outro("✅ thundr.yml updated with new environment: {$newEnv}");
 
         return Command::SUCCESS;
     }
