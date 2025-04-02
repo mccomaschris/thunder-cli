@@ -63,7 +63,6 @@ class SiteInitCommand extends Command
         $phpVersion = text('PHP version:', default: '8.3');
         $projectType = strtolower(select('Project type:', ['Laravel', 'Statamic']));
         $server = select('Which server should this project deploy to?', array_keys($servers));
-        $operatingSystem = strtolower(select('Operating System:', ['Ubuntu', 'Oracle']));
 
         // Add new env to config array
         $existingConfig[$newEnv] = [
@@ -73,7 +72,6 @@ class SiteInitCommand extends Command
             'php_version' => $phpVersion,
             'project_type' => $projectType,
             'server' => $server,
-            'operating_system' => $operatingSystem,
         ];
 
         if ($nakedRedirect) {

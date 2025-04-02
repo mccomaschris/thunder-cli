@@ -10,6 +10,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\outro;
+use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
 
@@ -38,11 +39,13 @@ class ServerCreateCommand extends Command
         $host = text('Host (e.g. 192.168.1.10 or deploy.example.com):');
         $user = text('SSH user:', default: 'thundr');
         $sshKey = text('Path to SSH private key:', default: '~/.ssh/id_rsa');
+        $operatingSystem = strtolower(select('Operating System:', ['Ubuntu', 'Oracle']));
 
         $config['servers'][$serverKey] = [
             'host' => $host,
             'user' => $user,
             'ssh_key' => $sshKey,
+            'os' => $operatingSystem,
         ];
 
         ConfigManager::saveGlobalConfig($config);

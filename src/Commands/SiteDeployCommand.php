@@ -45,7 +45,7 @@ class SiteDeployCommand extends Command
         $branch = $project['branch'] ?? 'main';
         $phpVersion = $project['php_version'] ?? '8.3';
         $retainReleases = $project['retain_releases'] ?? 5;
-        $os = $project['operating_system'] ?? 'ubuntu';
+        $os = $global['servers'][$project['server']]['os'] ?? 'ubuntu';
         $webGroup = $os === 'oracle' ? 'nginx' : 'www-data';
         $projectType = strtolower($project['project_type'] ?? 'laravel');
         $database = $project['database'] ?? 'mysql';
