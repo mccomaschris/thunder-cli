@@ -6,13 +6,13 @@ Thundr is a PHP CLI tool for managing Laravel and Statamic sites on your servers
 
 ## Features
 
-- 🔧 Site provisioning with PHP, Nginx, and MySQL
+- 🔧 Site provisioning with PHP, Nginx, MySQL, Redis, and more
 - 🔐 SSL via Let's Encrypt or Cloudflare Origin Certificates
-- ⚙️ Cron/scheduler management
-- 📦 Zero-downtime deployments
+- ⚙️ Scheduler and cron management
+- 📦 Zero-downtime deployments with shared `.env`, releases, and rollbacks
 - 🛠 Remote `.env`, logs, and Artisan command execution
-- 📂 Multiple server support with centralized config
-- 🧼 Rollback and release pruning
+- 📂 Multiple server support with centralized global config
+- 🧼 Rollback support and automatic release pruning
 
 ---
 
@@ -21,7 +21,7 @@ Thundr is a PHP CLI tool for managing Laravel and Statamic sites on your servers
 - PHP 8.1+
 - Laravel or Statamic project
 - `thundr.yml` file in your project root
-- Remote server with SSH access
+- Remote server with SSH access (`thundr` user will be provisioned)
 
 ---
 
@@ -31,40 +31,44 @@ Thundr is a PHP CLI tool for managing Laravel and Statamic sites on your servers
 composer global require mccomaschris/thundr-cli
 ```
 
-Make sure Composer's global vendor/bin directory is in your $PATH.
-
-## Quick Start
-It's best to start with a clean install of Ubuntu 24.04.
-
-1. Initialize global config:
-```bash
-thundr config:init
-```
-
-2. Provision the server (install nginx, PHP, MySQL, create `thundr` user);
-```bash
-thundr server:provision
-```
-
-3. Set up your project:
-```bash
-thundr site:init
-```
-
-4. Provision the site on the server:
-```bash
-thundr site:create
-```
-
-5. Deploy it:
-```bash
-thundr site:deploy
-```
+Make sure Composer's global `vendor/bin` directory is in your `$PATH`.
 
 ---
 
-## Example thundr.yml
-```yml
+## Quick Start
+
+It's best to start with a clean install of Ubuntu 24.04 or Oracle Linux 9.
+
+1. Initialize global config:
+    ```bash
+    thundr config:init
+    ```
+
+2. Provision the server (installs PHP, Nginx, MySQL, Redis, Node via NVM, etc.):
+    ```bash
+    thundr server:provision
+    ```
+
+3. Set up your project:
+    ```bash
+    thundr site:init
+    ```
+
+4. Provision the site on the server:
+    ```bash
+    thundr site:create
+    ```
+
+5. Deploy the project:
+    ```bash
+    thundr site:deploy
+    ```
+
+---
+
+## Example `thundr.yml`
+
+```yaml
 production:
   root_domain: example.com
   repo: user/repo.git
@@ -78,16 +82,19 @@ production:
 ---
 
 ## Full Command Reference
+
 We’ve documented each command with descriptions, usage examples, and notes:
 
-[View Full CLI Documentation](https://mccomaschris.github.io/thunder-cli/)
+[View Full CLI Documentation](/docs/index)
 
 ---
 
 ## Contributing
+
 Pull requests and suggestions are welcome! Please open an issue or submit a PR.
 
 ---
 
 ## License
+
 MIT
