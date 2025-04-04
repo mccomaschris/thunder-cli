@@ -23,6 +23,7 @@ class ServerSshConnectCommand extends Command
 
         if (empty($servers)) {
             error('❌ No servers defined in global config.');
+
             return Command::FAILURE;
         }
 
@@ -35,6 +36,7 @@ class ServerSshConnectCommand extends Command
 
         if (! $server) {
             error("❌ Server config for '{$selectedServer}' not found.");
+
             return Command::FAILURE;
         }
 

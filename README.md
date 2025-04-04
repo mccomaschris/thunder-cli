@@ -21,7 +21,7 @@ Thundr is a PHP CLI tool for managing Laravel and Statamic sites on your servers
 - PHP 8.1+
 - Laravel or Statamic project
 - `thundr.yml` file in your project root
-- Remote server with SSH access and a `thundr` user
+- Remote server with SSH access
 
 ---
 
@@ -34,22 +34,29 @@ composer global require mccomaschris/thundr-cli
 Make sure Composer's global vendor/bin directory is in your $PATH.
 
 ## Quick Start
+It's best to start with a clean install of Ubuntu 24.04.
+
 1. Initialize global config:
 ```bash
 thundr config:init
 ```
 
-2. Set up your project:
+2. Provision the server (install nginx, PHP, MySQL, create `thundr` user);
+```bash
+thundr server:provision
+```
+
+3. Set up your project:
 ```bash
 thundr site:init
 ```
 
-3. Provision the site on the server:
+4. Provision the site on the server:
 ```bash
 thundr site:create
 ```
 
-4. Deploy it:
+5. Deploy it:
 ```bash
 thundr site:deploy
 ```
@@ -58,13 +65,14 @@ thundr site:deploy
 
 ## Example thundr.yml
 ```yml
-root_domain: example.com
-repo: user/repo.git
-branch: main
-php_version: '8.3'
-project_type: laravel
-server: my-production-server
-operating_system: ubuntu
+production:
+  root_domain: example.com
+  repo: user/repo.git
+  branch: main
+  php_version: '8.3'
+  project_type: laravel
+  server: my-production-server
+  operating_system: ubuntu
 ```
 
 ---
