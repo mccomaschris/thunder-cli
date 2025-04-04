@@ -2,10 +2,10 @@
 
 namespace ThundrLabs\ThundrCli\Support\Traits;
 
-use ThundrLabs\ThundrCli\Support\ConfigManager;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use ThundrLabs\ThundrCli\Support\ConfigManager;
 
 use function Laravel\Prompts\select;
 

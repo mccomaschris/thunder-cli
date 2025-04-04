@@ -2,6 +2,7 @@
 
 namespace ThundrLabs\ThundrCli;
 
+use Symfony\Component\Console\Application as BaseApplication;
 use ThundrLabs\ThundrCli\Commands\ServerCloudFlareCommand;
 use ThundrLabs\ThundrCli\Commands\ServerCreateCommand;
 use ThundrLabs\ThundrCli\Commands\ServerDeleteCommand;
@@ -22,13 +23,12 @@ use ThundrLabs\ThundrCli\Commands\SiteSqliteCommand;
 use ThundrLabs\ThundrCli\Commands\SiteSshCommand;
 use ThundrLabs\ThundrCli\Commands\SiteSslCommand;
 use ThundrLabs\ThundrCli\Commands\SiteStatusCommand;
-use Symfony\Component\Console\Application as BaseApplication;
 
 class Application extends BaseApplication
 {
     public function __construct()
     {
-        parent::__construct('Thundr CLI', '1.0.3');
+        parent::__construct('Thundr CLI', '1.0.4');
 
         $this->add(new ServerCloudFlareCommand);
         $this->add(new ServerCreateCommand);

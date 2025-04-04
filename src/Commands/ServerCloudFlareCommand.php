@@ -2,11 +2,11 @@
 
 namespace ThundrLabs\ThundrCli\Commands;
 
-use ThundrLabs\ThundrCli\Support\ConfigManager;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use ThundrLabs\ThundrCli\Support\ConfigManager;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\outro;

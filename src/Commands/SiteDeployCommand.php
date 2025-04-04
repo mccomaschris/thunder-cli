@@ -2,13 +2,13 @@
 
 namespace ThundrLabs\ThundrCli\Commands;
 
-use ThundrLabs\ThundrCli\Support\ConfigManager;
-use ThundrLabs\ThundrCli\Support\RemoteSshRunner;
-use ThundrLabs\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use ThundrLabs\ThundrCli\Support\ConfigManager;
+use ThundrLabs\ThundrCli\Support\RemoteSshRunner;
+use ThundrLabs\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
@@ -143,6 +143,7 @@ class SiteDeployCommand extends Command
 
             if (! $run['success']) {
                 error('❌ Deployment failed before switching symlink. No changes made to live site.');
+
                 return Command::FAILURE;
             }
         }
