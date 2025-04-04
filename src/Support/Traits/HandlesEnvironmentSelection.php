@@ -1,8 +1,8 @@
 <?php
 
-namespace Mccomaschris\ThundrCli\Support\Traits;
+namespace ThundrLabs\ThundrCli\Support\Traits;
 
-use Mccomaschris\ThundrCli\Support\ConfigManager;
+use ThundrLabs\ThundrCli\Support\ConfigManager;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;

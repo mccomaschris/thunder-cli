@@ -153,7 +153,7 @@ function install_php_stack() {
   apt_wait
   apt-get update
   apt_wait
-  apt-get install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath php8.3-gd php8.3-soap php8.3-intl php8.3-readline php8.3-opcache php8.3-redis php8.3-memcached
+  apt-get install -y php8.3 php8.3-cli php8.3-fpm php8.3-mysql php8.3-sqlite3 php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath php8.3-gd php8.3-soap php8.3-intl php8.3-readline php8.3-opcache php8.3-redis php8.3-memcached
 
   # Configure PHP-FPM to run as thundr
   sed -i "s/^user = www-data/user = thundr/" /etc/php/8.3/fpm/pool.d/www.conf

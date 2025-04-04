@@ -1,10 +1,10 @@
 {
-	"name": "mccomaschris/thundr-cli",
+	"name": "thundrlabs/thundr-cli",
 	"description": "Thundr CLI for managing Laravel and Statamic sites.",
-	"type": "project",
+	"type": "library",
 	"autoload": {
 	  "psr-4": {
-		"Mccomaschris\\ThundrCli\\": "src/"
+		"ThundrLabs\\ThundrCli\\": "src/"
 	  }
 	},
 	"autoload-dev": {

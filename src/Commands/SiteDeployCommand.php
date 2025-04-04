@@ -1,10 +1,10 @@
 <?php
 
-namespace Mccomaschris\ThundrCli\Commands;
+namespace ThundrLabs\ThundrCli\Commands;
 
-use Mccomaschris\ThundrCli\Support\ConfigManager;
-use Mccomaschris\ThundrCli\Support\RemoteSshRunner;
-use Mccomaschris\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
+use ThundrLabs\ThundrCli\Support\ConfigManager;
+use ThundrLabs\ThundrCli\Support\RemoteSshRunner;
+use ThundrLabs\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -86,14 +86,6 @@ class SiteDeployCommand extends Command
             $migrateDb = confirm('Do you want to run migrations?', default: true);
         }
 
-        if ($migrateDb) {
-            $checkMigrateCmd = "cd {$newRelease} && php artisan migrate:status";
-            $checkMigrate = $ssh->runWithStatus($checkMigrateCmd);
-            $shouldMigrate = $checkMigrate['success'];
-        } else {
-            $shouldMigrate = false;
-        }
-
         info("🔗 Starting zero-downtime deployment for {$rootDomain}...");
 
         $commands = [
@@ -104,17 +96,20 @@ class SiteDeployCommand extends Command
             "sudo -u {$user} mkdir {$newRelease}",
 
             // Git clone and setup
-            "sudo -u {$user} git clone git@github.com:{$repo} {$newRelease}",
-            "sudo -u {$user} git -C {$newRelease} checkout {$branch}",
-            "sudo -u {$user} git config --global --add safe.directory {$newRelease}",
+            // Clone just the default branch
+            "sudo -u {$user} git clone --no-checkout git@github.com:{$repo} {$newRelease}",
+            "sudo -u {$user} git -C {$newRelease} config --global --add safe.directory {$newRelease}",
+            "sudo -u {$user} git -C {$newRelease} remote set-branches origin '*'",
             "sudo -u {$user} git -C {$newRelease} fetch origin",
-            "sudo -u {$user} git -C {$newRelease} pull origin {$branch}",
+            "sudo -u {$user} git -C {$newRelease} checkout {$branch}",
         ];
 
         if ($database === 'sqlite') {
-            $commands[] = "mkdir -p {$deployBase}/shared/database";
-            $commands[] = "touch {$deployBase}/shared/database/database.sqlite";
-            $commands[] = "ln -s {$deployBase}/shared/database {$newRelease}/database";
+            $commands[] = "echo 🔗 Linking SQLite: {$deployBase}/shared/database/database.sqlite -> {$newRelease}/database/database.sqlite";
+            $commands[] = "sudo -u {$user} mkdir -p {$newRelease}/database";
+            $commands[] = "sudo rm -f {$newRelease}/database/database.sqlite";
+            $commands[] = "sudo -u {$user} ln -snf {$deployBase}/shared/database/database.sqlite {$newRelease}/database/database.sqlite";
+            $commands[] = "ls -l {$newRelease}/database";
         }
 
         $commands = array_merge($commands, [
@@ -125,17 +120,7 @@ class SiteDeployCommand extends Command
             "sudo -u {$user} /usr/local/bin/composer --working-dir={$newRelease} install --no-dev --optimize-autoloader --no-ansi --no-progress --no-interaction",
         ]);
 
-        if ($shouldMigrate) {
-            $commands[] = "cd {$newRelease} && sudo -u {$user} php artisan migrate --force";
-        }
-
         $commands[] = "sudo -u {$user} bash -c \"[ -f /home/{$user}/.nvm/nvm.sh ] && . /home/{$user}/.nvm/nvm.sh && cd {$newRelease} && npm ci && npm run build --silent\"";
-        $commands[] = "cd {$newRelease} && sudo -u {$user} php artisan optimize:clear";
-
-        if ($projectType === 'statamic') {
-            $commands[] = "cd {$newRelease} && sudo -u {$user} php artisan optimize";
-            $commands[] = "cd {$newRelease} && sudo -u {$user} php artisan please stache:warm";
-        }
 
         if ($debug) {
             foreach ($commands as $index => $command) {
@@ -158,7 +143,6 @@ class SiteDeployCommand extends Command
 
             if (! $run['success']) {
                 error('❌ Deployment failed before switching symlink. No changes made to live site.');
-
                 return Command::FAILURE;
             }
         }
@@ -175,11 +159,16 @@ class SiteDeployCommand extends Command
             "mkdir -p {$deployBase}/shared/storage/framework/views",
             "mkdir -p {$deployBase}/shared/storage/logs",
 
+            // ✅ Now switch the symlink
             "sudo ln -nsf {$newRelease} {$currentDir}",
+
+            "cd {$currentDir} && php artisan migrate:status || echo '⚠️ Could not check migration status. Skipping migrations.'",
+            "cd {$currentDir} && php artisan migrate --force || echo '⚠️ Migrate failed — continuing without aborting'",
+
+            "cd {$currentDir} && sudo -u {$user} php artisan optimize:clear",
 
             "sudo chown -R {$user}:{$webGroup} {$newRelease}",
             "sudo chmod -R 750 {$newRelease}",
-
             "sudo chown -R {$user}:{$webGroup} {$newRelease}/storage",
             "sudo chmod -R 775 {$newRelease}/storage",
 
@@ -188,7 +177,6 @@ class SiteDeployCommand extends Command
 
             "sudo systemctl reload {$phpRestart} && sudo systemctl reload nginx",
 
-            // Make sure this doesn't rely on cd persisting
             "ls -1t {$releasesDir} | tail -n +{$retainReleases} | xargs -I{} rm -rf {$releasesDir}/{}",
         ];
 
@@ -217,6 +205,11 @@ class SiteDeployCommand extends Command
                 return Command::FAILURE;
             }
         }
+
+        // if ($projectType === 'statamic') {
+        //     $output->writeln("<info>⚡ Running Statamic stache:warm...</info>");
+        //     $ssh->run("cd {$currentDir} && sudo -u {$user} php please stache:warm");
+        // }
 
         outro("✅ Deployment complete! New release deployed at: {$newRelease}");
 

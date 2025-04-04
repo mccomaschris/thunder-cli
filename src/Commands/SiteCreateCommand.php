@@ -1,10 +1,10 @@
 <?php
 
-namespace Mccomaschris\ThundrCli\Commands;
+namespace ThundrLabs\ThundrCli\Commands;
 
-use Mccomaschris\ThundrCli\Support\ConfigManager;
-use Mccomaschris\ThundrCli\Support\RemoteSshRunner;
-use Mccomaschris\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
+use ThundrLabs\ThundrCli\Support\ConfigManager;
+use ThundrLabs\ThundrCli\Support\RemoteSshRunner;
+use ThundrLabs\ThundrCli\Support\Traits\HandlesEnvironmentSelection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -76,12 +76,21 @@ class SiteCreateCommand extends Command
         $phpVersion = $project['php_version'] ?? '8.3';
         $nakedRedirect = $project['naked_redirect'] ?? false;
         $deployBase = "/var/www/html/{$rootDomain}";
+        $os = $global['servers'][$project['server']]['os'] ?? 'ubuntu';
+        $webGroup = $os === 'oracle' ? 'nginx' : 'www-data';
+        $user = $server['user'] ?? 'thundr';
 
         $commands = [
             "sudo mkdir -p {$deployBase}/releases",
             "sudo mkdir -p {$deployBase}/shared/storage",
             "sudo mkdir -p {$deployBase}/shared/public/uploads",
         ];
+
+        if (($project['database'] ?? null) === 'sqlite') {
+            $commands[] = "sudo mkdir -p {$deployBase}/shared/database";
+            $commands[] = "sudo touch {$deployBase}/shared/database/database.sqlite";
+            $commands[] = "sudo chown -R {$user}:{$webGroup} {$deployBase}/shared/database";
+        }
 
         // Load main nginx config stub
         $mainStubPaths = [

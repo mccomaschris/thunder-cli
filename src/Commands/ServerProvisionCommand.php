@@ -1,6 +1,6 @@
 <?php
 
-namespace Mccomaschris\ThundrCli\Commands;
+namespace ThundrLabs\ThundrCli\Commands;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Mccomaschris\ThundrCli\Support;
+namespace ThundrLabs\ThundrCli\Support;
 
 use Symfony\Component\Process\Process;
 

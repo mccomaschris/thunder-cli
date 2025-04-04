@@ -28,7 +28,7 @@ Thundr is a PHP CLI tool for managing Laravel and Statamic sites on your servers
 ## Installation
 
 ```bash
-composer global require mccomaschris/thundr-cli
+composer global require thundrlabs/thundr-cli
 ```
 
 Make sure Composer's global `vendor/bin` directory is in your `$PATH`.
