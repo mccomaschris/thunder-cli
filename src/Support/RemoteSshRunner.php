@@ -78,4 +78,17 @@ class RemoteSshRunner
 
         return "ssh {$sshOptions} {$this->user}@{$this->host} '{$command}'";
     }
+
+    public function buildRawLoginCommand(): string
+    {
+        $cmd = 'ssh ';
+
+        if ($this->sshKey) {
+            $cmd .= "-i {$this->sshKey} ";
+        }
+
+        $cmd .= "{$this->user}@{$this->host}";
+
+        return $cmd;
+    }
 }

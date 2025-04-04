@@ -9,6 +9,7 @@ use Mccomaschris\ThundrCli\Commands\ServerEditCommand;
 use Mccomaschris\ThundrCli\Commands\ServerListCommand;
 use Mccomaschris\ThundrCli\Commands\ServerMonitorCommand;
 use Mccomaschris\ThundrCli\Commands\ServerProvisionCommand;
+use Mccomaschris\ThundrCli\Commands\ServerSshConnectCommand;
 use Mccomaschris\ThundrCli\Commands\SiteArtisanCommand;
 use Mccomaschris\ThundrCli\Commands\SiteCreateCommand;
 use Mccomaschris\ThundrCli\Commands\SiteCronCommand;
@@ -36,6 +37,7 @@ class Application extends BaseApplication
         $this->add(new ServerListCommand);
         $this->add(new ServerMonitorCommand);
         $this->add(new ServerProvisionCommand);
+        $this->add(new ServerSshConnectCommand);
         $this->add(new SiteArtisanCommand);
         $this->add(new SiteCreateCommand);
         $this->add(new SiteCronCommand);
