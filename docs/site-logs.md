@@ -9,7 +9,7 @@ Tail the Laravel log file on the site
 ## 🚀 Usage
 
 ```bash
-php thundr site:logs
+thundr site:logs
 ```
 
 
@@ -21,7 +21,7 @@ php thundr site:logs
 ## ✅ Example
 
 ```bash
-php thundr site:logs
+thundr site:logs
 ```
 
 ---

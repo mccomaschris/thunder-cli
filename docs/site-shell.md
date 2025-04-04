@@ -9,7 +9,7 @@ SSH into the site server
 ## 🚀 Usage
 
 ```bash
-php thundr site:shell
+thundr site:shell
 ```
 
 
@@ -21,7 +21,7 @@ php thundr site:shell
 ## ✅ Example
 
 ```bash
-php thundr site:shell
+thundr site:shell
 ```
 
 ---

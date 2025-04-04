@@ -9,7 +9,7 @@ Delete a server from your global config
 ## 🚀 Usage
 
 ```bash
-php thundr server:delete
+thundr server:delete
 ```
 
 
@@ -21,7 +21,7 @@ php thundr server:delete
 ## ✅ Example
 
 ```bash
-php thundr server:delete
+thundr server:delete
 ```
 
 ---

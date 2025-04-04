@@ -9,7 +9,7 @@ Add or update Cloudflare account info in ~/.thundr/config.yml
 ## 🚀 Usage
 
 ```bash
-php thundr server:cloudflare
+thundr server:cloudflare
 ```
 
 
@@ -21,7 +21,7 @@ php thundr server:cloudflare
 ## ✅ Example
 
 ```bash
-php thundr server:cloudflare
+thundr server:cloudflare
 ```
 
 ---

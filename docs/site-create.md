@@ -9,7 +9,7 @@ Provision a new site on the remote server
 ## 🚀 Usage
 
 ```bash
-php thundr site:create
+thundr site:create
 ```
 
 
@@ -21,7 +21,7 @@ php thundr site:create
 ## ✅ Example
 
 ```bash
-php thundr site:create
+thundr site:create
 ```
 
 ---

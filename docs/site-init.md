@@ -9,7 +9,7 @@ Initialize a new thundr.yml file for this project
 ## 🚀 Usage
 
 ```bash
-php thundr site:init
+thundr site:init
 ```
 
 
@@ -21,7 +21,7 @@ php thundr site:init
 ## ✅ Example
 
 ```bash
-php thundr site:init
+thundr site:init
 ```
 
 ---

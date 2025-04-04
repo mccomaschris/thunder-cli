@@ -9,7 +9,7 @@ Deploy a Laravel or Statamic app
 ## 🚀 Usage
 
 ```bash
-php thundr site:deploy [--debug]
+thundr site:deploy [--debug]
 ```
 
 ---
@@ -25,7 +25,7 @@ php thundr site:deploy [--debug]
 ## ✅ Example
 
 ```bash
-php thundr site:deploy --debug
+thundr site:deploy --debug
 ```
 
 ---

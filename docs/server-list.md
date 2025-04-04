@@ -9,7 +9,7 @@ List available servers and project details
 ## 🚀 Usage
 
 ```bash
-php thundr server:list
+thundr server:list
 ```
 
 
@@ -21,7 +21,7 @@ php thundr server:list
 ## ✅ Example
 
 ```bash
-php thundr server:list
+thundr server:list
 ```
 
 ---

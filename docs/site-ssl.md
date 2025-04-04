@@ -9,7 +9,7 @@ Add SSL (Cloudflare or Let's Encrypt) to site and configure nginx
 ## 🚀 Usage
 
 ```bash
-php thundr site:ssl
+thundr site:ssl
 ```
 
 ---
@@ -27,7 +27,7 @@ php thundr site:ssl
 ## ✅ Example
 
 ```bash
-php thundr site:ssl
+thundr site:ssl
 ```
 
 Follow the prompts to choose SSL provider and complete setup.

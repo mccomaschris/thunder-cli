@@ -9,7 +9,7 @@ Run a remote artisan command on the server
 ## 🚀 Usage
 
 ```bash
-php thundr site:artisan
+thundr site:artisan
 ```
 
 ## 🧾 Arguments
@@ -26,7 +26,7 @@ php thundr site:artisan
 ## ✅ Example
 
 ```bash
-php thundr site:artisan
+thundr site:artisan
 ```
 
 ---

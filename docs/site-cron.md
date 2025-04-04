@@ -9,7 +9,7 @@ Toggle the cron job to run the Laravel scheduler for Artisan commands
 ## 🚀 Usage
 
 ```bash
-php thundr site:cron
+thundr site:cron
 ```
 
 
@@ -21,7 +21,7 @@ php thundr site:cron
 ## ✅ Example
 
 ```bash
-php thundr site:cron
+thundr site:cron
 ```
 
 ---

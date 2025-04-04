@@ -9,7 +9,7 @@ Rollback to the previous release
 ## 🚀 Usage
 
 ```bash
-php thundr site:rollback
+thundr site:rollback
 ```
 
 
@@ -21,7 +21,7 @@ php thundr site:rollback
 ## ✅ Example
 
 ```bash
-php thundr site:rollback
+thundr site:rollback
 ```
 
 ---

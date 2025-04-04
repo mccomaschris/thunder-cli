@@ -9,7 +9,7 @@ Manage environment variables on the remote server
 ## 🚀 Usage
 
 ```bash
-php thundr site:env
+thundr site:env
 ```
 
 
@@ -21,7 +21,7 @@ php thundr site:env
 ## ✅ Example
 
 ```bash
-php thundr site:env
+thundr site:env
 ```
 
 ---

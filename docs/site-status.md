@@ -9,7 +9,7 @@ View the current status of the site (release, SSL, scheduler)
 ## 🚀 Usage
 
 ```bash
-php thundr site:status
+thundr site:status
 ```
 
 
@@ -21,7 +21,7 @@ php thundr site:status
 ## ✅ Example
 
 ```bash
-php thundr site:status
+thundr site:status
 ```
 
 ---

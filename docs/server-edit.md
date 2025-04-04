@@ -9,7 +9,7 @@ Edit a server in your global config
 ## 🚀 Usage
 
 ```bash
-php thundr server:edit
+thundr server:edit
 ```
 
 
@@ -21,7 +21,7 @@ php thundr server:edit
 ## ✅ Example
 
 ```bash
-php thundr server:edit
+thundr server:edit
 ```
 
 ---

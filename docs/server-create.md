@@ -9,7 +9,7 @@ Add or update a server or Cloudflare API in ~/.thundr/config.yml
 ## 🚀 Usage
 
 ```bash
-php thundr server:create
+thundr server:create
 ```
 
 
@@ -21,7 +21,7 @@ php thundr server:create
 ## ✅ Example
 
 ```bash
-php thundr server:create
+thundr server:create
 ```
 
 ---

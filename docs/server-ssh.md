@@ -9,7 +9,7 @@ SSH into a server defined in your global Thundr config
 ## 🚀 Usage
 
 ```bash
-php thundr server:ssh
+thundr server:ssh
 ```
 
 
@@ -21,7 +21,7 @@ php thundr server:ssh
 ## ✅ Example
 
 ```bash
-php thundr server:ssh
+thundr server:ssh
 ```
 
 ---
